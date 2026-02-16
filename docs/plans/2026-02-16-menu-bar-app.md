@@ -171,15 +171,15 @@ log_file: "~/Library/Logs/privileges-extender.log"
 - [x] Run `swift test` — must pass before next task
 
 ### Task 3: Privilege manager (Core)
-- [ ] Create `Sources/PrivilegesExtenderCore/PrivilegeManager.swift` — wraps `Foundation.Process` calls to PrivilegesCLI
-- [ ] Define `PrivilegeStatus` enum: `.elevated`, `.standard`, `.unknown`
-- [ ] Implement `checkStatus() -> PrivilegeStatus` — runs `--status`, parses output to determine state
-- [ ] Implement `elevate(reason: String) -> Result<Void, Error>` — runs `--add --reason "<reason>"`
-- [ ] Implement `revoke() -> Result<Void, Error>` — runs `--remove`
-- [ ] Create `Sources/PrivilegesExtenderCore/Logger.swift` — simple file logger (append timestamped entries)
-- [ ] Add logging for all privilege operations
-- [ ] Write `Tests/PrivilegesExtenderCoreTests/PrivilegeManagerTests.swift` — test status parsing logic (mock CLI output strings), error handling (CLI not found, non-zero exit code)
-- [ ] Run `swift test` — must pass before next task
+- [x] Create `Sources/PrivilegesExtenderCore/PrivilegeManager.swift` — wraps `Foundation.Process` calls to PrivilegesCLI
+- [x] Define `PrivilegeStatus` enum: `.elevated`, `.standard`, `.unknown`
+- [x] Implement `checkStatus() -> PrivilegeStatus` — runs `--status`, parses output to determine state
+- [x] Implement `elevate(reason: String) -> Result<Void, Error>` — runs `--add --reason "<reason>"`
+- [x] Implement `revoke() -> Result<Void, Error>` — runs `--remove`
+- [x] Create `Sources/PrivilegesExtenderCore/Logger.swift` — simple file logger (append timestamped entries)
+- [x] Add logging for all privilege operations
+- [x] Write `Tests/PrivilegesExtenderCoreTests/PrivilegeManagerTests.swift` — test status parsing logic (mock CLI output strings), error handling (CLI not found, non-zero exit code)
+- [x] Run `swift test` — must pass before next task
 
 ### Task 4: Elevation session state machine (Core)
 - [ ] Create `Sources/PrivilegesExtenderCore/ElevationSession.swift` — tracks active elevation state: reason, start time, chosen duration, re-elevation interval
