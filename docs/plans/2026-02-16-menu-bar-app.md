@@ -194,17 +194,17 @@ log_file: "~/Library/Logs/privileges-extender.log"
 - [x] Run `swift test` — must pass before next task
 
 ### Task 5: Full menu bar UI with reasons and durations
-- [ ] Create `Sources/PrivilegesExtender/MenuBuilder.swift` — builds the full `NSMenu` from `AppConfig`
-- [ ] Build status item at top (shows current state: "Elevated — reason (time remaining)" or "Standard User")
-- [ ] Build "Elevate Now" submenu: for each reason in config, create a submenu with duration options from config
-- [ ] Add "Other..." item with text input dialog (NSAlert with NSTextField), then show duration picker
-- [ ] Add "Revoke Privileges" item
-- [ ] Add "View Logs", "Open Configuration" items
-- [ ] Add "Start at Login" toggle item (checkbox)
-- [ ] Add "Check Permissions" item
-- [ ] Add "Quit" item
-- [ ] Wire up `StatusBarController` to use `MenuBuilder` and refresh menu on config/state changes
-- [ ] Run `swift build` — must compile before next task
+- [x] Create `Sources/PrivilegesExtender/MenuBuilder.swift` — builds the full `NSMenu` from `AppConfig`
+- [x] Build status item at top (shows current state: "Elevated — reason (time remaining)" or "Standard User")
+- [x] Build "Elevate Now" submenu: for each reason in config, create a submenu with duration options from config
+- [x] Add "Other..." item with text input dialog (NSAlert with NSTextField), then show duration picker
+- [x] Add "Revoke Privileges" item
+- [x] Add "View Logs", "Open Configuration" items
+- [x] Add "Start at Login" toggle item (checkbox)
+- [x] Add "Check Permissions" item
+- [x] Add "Quit" item
+- [x] Wire up `StatusBarController` to use `MenuBuilder` and refresh menu on config/state changes
+- [x] Run `swift build` — must compile before next task
 
 ### Task 6: Wire elevation flow (app ↔ Core)
 - [ ] Connect menu item actions to `ElevationSession.start()` and `PrivilegeManager.elevate()`
