@@ -7,6 +7,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var configManager: ConfigManager?
     private var privilegeManager: PrivilegeManager?
     private var logger: Logger?
+    private var reElevationTimer: Timer?
+
+    /// How often the timer ticks to check session state (seconds).
+    /// Short interval so the UI countdown stays responsive.
+    private let timerInterval: TimeInterval = 30
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Load configuration
@@ -59,6 +64,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         )
     }
 
+    func applicationWillTerminate(_ notification: Notification) {
+        stopReElevationTimer()
+    }
+
     // MARK: - Actions
 
     private func handleElevate(reason: String, duration: DurationOption) {
@@ -68,8 +77,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         switch result {
         case .success:
             session.start(reason: reason, duration: duration)
-            statusBarController?.refresh()
             logger?.log("Elevated with reason: \(reason), duration: \(duration.label)")
+            startReElevationTimer()
+            statusBarController?.refresh()
         case .failure(let error):
             logger?.log("Elevation failed: \(error)")
         }
@@ -82,10 +92,69 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         switch result {
         case .success:
             session.stop()
-            statusBarController?.refresh()
             logger?.log("Privileges revoked")
+            stopReElevationTimer()
+            statusBarController?.refresh()
         case .failure(let error):
             logger?.log("Revoke failed: \(error)")
         }
+    }
+
+    // MARK: - Re-elevation Timer
+
+    private func startReElevationTimer() {
+        stopReElevationTimer()
+        reElevationTimer = Timer.scheduledTimer(
+            timeInterval: timerInterval,
+            target: self,
+            selector: #selector(timerTick),
+            userInfo: nil,
+            repeats: true
+        )
+        // Allow timer to fire even during menu tracking and other modal run loop modes
+        RunLoop.current.add(reElevationTimer!, forMode: .common)
+    }
+
+    private func stopReElevationTimer() {
+        reElevationTimer?.invalidate()
+        reElevationTimer = nil
+    }
+
+    @objc private func timerTick() {
+        guard let session = session, let privilegeManager = privilegeManager else { return }
+        let config = configManager?.config
+
+        // Check if the session has expired
+        if session.checkExpiry() {
+            logger?.log("Session expired, revoking privileges")
+            let _ = privilegeManager.revoke()
+            stopReElevationTimer()
+            statusBarController?.refresh()
+            return
+        }
+
+        // Check if it's time to re-elevate
+        if session.shouldReElevate() {
+            if let reason = session.activeReason {
+                logger?.log("Re-elevating privileges (reason: \(reason))")
+                let result = privilegeManager.elevate(reason: reason)
+                switch result {
+                case .success:
+                    session.recordReElevation()
+                    logger?.log("Re-elevation successful")
+                case .failure(let error):
+                    logger?.log("Re-elevation failed: \(error)")
+                }
+            }
+        }
+
+        // Dismiss notifications if configured
+        if config?.dismissNotifications ?? false {
+            // NotificationDismisser will be implemented in Task 8
+            // For now, just a placeholder call site
+        }
+
+        // Refresh the menu to update remaining time display
+        statusBarController?.refresh()
     }
 }

@@ -207,12 +207,12 @@ log_file: "~/Library/Logs/privileges-extender.log"
 - [x] Run `swift build` — must compile before next task
 
 ### Task 6: Wire elevation flow (app ↔ Core)
-- [ ] Connect menu item actions to `ElevationSession.start()` and `PrivilegeManager.elevate()`
-- [ ] Set up `Timer` in `AppDelegate` that checks `ElevationSession.shouldReElevate()` and calls `PrivilegeManager.elevate()` on tick
-- [ ] On timer tick: also dismiss notifications if configured, update menu bar status
-- [ ] Connect "Revoke Privileges" to `ElevationSession.stop()` and `PrivilegeManager.revoke()`
-- [ ] Update `StatusBarController` on state changes (refresh menu and icon)
-- [ ] Run `swift build` — must compile before next task
+- [x] Connect menu item actions to `ElevationSession.start()` and `PrivilegeManager.elevate()`
+- [x] Set up `Timer` in `AppDelegate` that checks `ElevationSession.shouldReElevate()` and calls `PrivilegeManager.elevate()` on tick
+- [x] On timer tick: also dismiss notifications if configured, update menu bar status
+- [x] Connect "Revoke Privileges" to `ElevationSession.stop()` and `PrivilegeManager.revoke()`
+- [x] Update `StatusBarController` on state changes (refresh menu and icon)
+- [x] Run `swift build` — must compile before next task
 
 ### Task 7: Status bar icon states
 - [ ] Define icon variants: `lock.shield` (standard), `lock.shield.fill` (elevated) — SF Symbols via `NSImage(systemSymbolName:)`
