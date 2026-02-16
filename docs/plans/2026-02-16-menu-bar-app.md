@@ -270,11 +270,11 @@ log_file: "~/Library/Logs/privileges-extender.log"
 - [x] Run `swift test` — must pass before next task
 
 ### Task 14: Install and uninstall scripts
-- [ ] Create `scripts/install.sh` — copies `.app` to `~/Applications/`, creates config directory, copies default config if none exists
-- [ ] Create `scripts/uninstall.sh` — removes app, optionally removes config and logs
-- [ ] Update old `install.sh` / `uninstall.sh` or replace them
-- [ ] Verify install/uninstall cycle works
-- [ ] Run `swift test` — must pass before next task
+- [x] Create `scripts/install.sh` — copies `.app` to `~/Applications/`, creates config directory, copies default config if none exists
+- [x] Create `scripts/uninstall.sh` — removes app, optionally removes config and logs
+- [x] Update old `install.sh` / `uninstall.sh` or replace them
+- [x] Verify install/uninstall cycle works
+- [x] Run `swift test` — must pass before next task
 
 ### Task 15: Verify acceptance criteria
 - [ ] Verify menu bar icon appears and changes state (elevated vs standard)

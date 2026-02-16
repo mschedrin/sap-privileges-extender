@@ -1,5 +1,9 @@
 #!/bin/bash
-# install.sh — Install the Privileges Extender agent
+# install.sh — Install the Privileges Extender agent (LEGACY PoC)
+#
+# NOTE: This script installs the legacy LaunchAgent + helper app version.
+# For the new native menu bar app, use: PrivilegesExtender/scripts/install.sh
+# To build the new app first: PrivilegesExtender/scripts/build.sh
 
 set -e
 

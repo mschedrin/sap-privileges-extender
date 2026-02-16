@@ -1,5 +1,8 @@
 #!/bin/bash
-# uninstall.sh — Remove the Privileges Extender agent
+# uninstall.sh — Remove the Privileges Extender agent (LEGACY PoC)
+#
+# NOTE: This script removes the legacy LaunchAgent + helper app version.
+# For the new native menu bar app, use: PrivilegesExtender/scripts/uninstall.sh
 
 INSTALL_DIR="$HOME/.local/bin"
 HELPER_APP="$HOME/Applications/DismissPrivilegesNotifications.app"
