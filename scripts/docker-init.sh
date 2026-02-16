@@ -40,6 +40,10 @@ if [[ ${uid} -eq 0 ]]; then
     if [[ "${SKIP_HOME_CHOWN}" != "1" ]]; then
         chown -R app:app /home/app
     fi
+
+    # mark /workspace as safe for git (mounted volume has different ownership)
+    # use --system so it applies to all users (root sets it, app user reads it)
+    git config --system --add safe.directory /workspace
 fi
 
 if [[ -f "/srv/init.sh" ]]; then
