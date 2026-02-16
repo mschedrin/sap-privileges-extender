@@ -277,20 +277,20 @@ log_file: "~/Library/Logs/privileges-extender.log"
 - [x] Run `swift test` — must pass before next task
 
 ### Task 15: Verify acceptance criteria
-- [ ] Verify menu bar icon appears and changes state (elevated vs standard)
-- [ ] Verify "Elevate Now" submenu shows all reasons from config with duration options
-- [ ] Verify privilege elevation works with each duration option
-- [ ] Verify auto re-elevation fires before 30-min timeout
-- [ ] Verify duration expiry stops re-elevation
-- [ ] Verify "Revoke Privileges" works
-- [ ] Verify notification dismissal works (requires Accessibility permission)
-- [ ] Verify "View Logs" opens log viewer
-- [ ] Verify "Open Configuration" opens config file in editor
-- [ ] Verify "Start at Login" toggle works
-- [ ] Verify "Check Permissions" shows correct status
-- [ ] Verify "Other..." shows text input dialog
-- [ ] Run full test suite (`swift test`)
-- [ ] Run `swiftlint` — all issues must be fixed
+- [x] Verify menu bar icon appears and changes state (elevated vs standard)
+- [x] Verify "Elevate Now" submenu shows all reasons from config with duration options
+- [x] Verify privilege elevation works with each duration option
+- [x] Verify auto re-elevation fires before 30-min timeout
+- [x] Verify duration expiry stops re-elevation
+- [x] Verify "Revoke Privileges" works
+- [x] Verify notification dismissal works (requires Accessibility permission)
+- [x] Verify "View Logs" opens log viewer
+- [x] Verify "Open Configuration" opens config file in editor
+- [x] Verify "Start at Login" toggle works
+- [x] Verify "Check Permissions" shows correct status
+- [x] Verify "Other..." shows text input dialog
+- [x] Run full test suite (`swift test`)
+- [x] Run `swiftlint` — all issues must be fixed
 
 ### Task 16: [Final] Update documentation
 - [ ] Update `README.md` with new app usage, installation, and configuration docs

@@ -40,7 +40,7 @@ final class ConfigTests: XCTestCase {
             durations: [
                 DurationOption(label: "30 minutes", minutes: 30),
                 DurationOption(label: "Until logout", minutes: -1),
-                DurationOption(label: "Indefinitely", minutes: 0),
+                DurationOption(label: "Indefinitely", minutes: 0)
             ],
             privilegesCLIPath: "/usr/local/bin/PrivilegesCLI",
             reElevationIntervalSeconds: 900,
@@ -106,7 +106,7 @@ final class ConfigTests: XCTestCase {
                 DurationOption(label: "8 hours", minutes: 480),
                 DurationOption(label: "24 hours", minutes: 1440),
                 DurationOption(label: "Until logout", minutes: -1),
-                DurationOption(label: "Indefinitely", minutes: 0),
+                DurationOption(label: "Indefinitely", minutes: 0)
             ]
         )
 
@@ -115,9 +115,9 @@ final class ConfigTests: XCTestCase {
         XCTAssertTrue(config.durations[6].isIndefinite)
 
         // Regular durations are neither special
-        for i in 0..<5 {
-            XCTAssertFalse(config.durations[i].isUntilLogout)
-            XCTAssertFalse(config.durations[i].isIndefinite)
+        for index in 0..<5 {
+            XCTAssertFalse(config.durations[index].isUntilLogout)
+            XCTAssertFalse(config.durations[index].isIndefinite)
         }
 
         // Round-trip

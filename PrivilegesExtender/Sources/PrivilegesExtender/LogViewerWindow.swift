@@ -93,9 +93,9 @@ struct LogViewerView: View {
         VStack(spacing: 0) {
             // Toolbar
             HStack {
-                Button(action: { viewModel.refresh() }) {
+                Button(action: { viewModel.refresh() }, label: {
                     Label("Refresh", systemImage: "arrow.clockwise")
-                }
+                })
 
                 Toggle("Auto-refresh", isOn: $viewModel.isAutoRefresh)
                     .toggleStyle(.checkbox)
@@ -109,9 +109,9 @@ struct LogViewerView: View {
 
                 Spacer()
 
-                Button(role: .destructive, action: { viewModel.clearLog() }) {
+                Button(role: .destructive, action: { viewModel.clearLog() }, label: {
                     Label("Clear Log", systemImage: "trash")
-                }
+                })
             }
             .padding(8)
 

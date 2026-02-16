@@ -20,53 +20,56 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private let timerInterval: TimeInterval = 30
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Load configuration
+        let config = setupSubsystems()
+        let callbacks = buildMenuCallbacks()
+
+        statusBarController = StatusBarController(
+            config: config,
+            session: session!,
+            callbacks: callbacks,
+            isLoginItemEnabled: { [weak self] in
+                self?.loginItemManager?.isEnabled() ?? false
+            }
+        )
+
+        startConfigFileWatcher()
+    }
+
+    private func setupSubsystems() -> AppConfig {
         let configManager = ConfigManager()
         self.configManager = configManager
         let config = configManager.config
 
-        // Set up logger
         let logPath = (config.logFile as NSString).expandingTildeInPath
         let logger = Logger(filePath: logPath)
         self.logger = logger
 
-        // Set up privilege manager
-        let privilegeManager = PrivilegeManager(cliPath: config.privilegesCLIPath, logger: logger)
-        self.privilegeManager = privilegeManager
-
-        // Set up elevation session
-        let session = ElevationSession(
+        self.privilegeManager = PrivilegeManager(cliPath: config.privilegesCLIPath, logger: logger)
+        self.session = ElevationSession(
             reElevationIntervalSeconds: TimeInterval(config.reElevationIntervalSeconds)
         )
-        self.session = session
 
-        // Set up notification dismisser
         if config.dismissNotifications {
             self.notificationDismisser = NotificationDismisser(logger: logger)
         }
 
-        // Set up login item manager
-        let loginItemManager = LoginItemManager()
-        self.loginItemManager = loginItemManager
+        self.loginItemManager = LoginItemManager()
+        self.permissionChecker = PermissionChecker(cliPath: config.privilegesCLIPath)
+        self.logViewerWindow = LogViewerWindow(logger: logger)
 
-        // Set up permission checker
-        let permissionChecker = PermissionChecker(cliPath: config.privilegesCLIPath)
-        self.permissionChecker = permissionChecker
+        return config
+    }
 
-        // Set up log viewer window
-        let logViewerWindow = LogViewerWindow(logger: logger)
-        self.logViewerWindow = logViewerWindow
-
-        // Set up menu callbacks
-        let callbacks = MenuCallbacks(
+    private func buildMenuCallbacks() -> MenuCallbacks {
+        MenuCallbacks(
             onElevate: { [weak self] reason, duration in
                 self?.handleElevate(reason: reason, duration: duration)
             },
             onRevoke: { [weak self] in
                 self?.handleRevoke()
             },
-            onViewLogs: { [weak logViewerWindow] in
-                logViewerWindow?.show()
+            onViewLogs: { [weak self] in
+                self?.logViewerWindow?.show()
             },
             onOpenConfiguration: { [weak self] in
                 self?.openConfiguration()
@@ -75,23 +78,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.loginItemManager?.toggle()
                 self?.statusBarController?.refresh()
             },
-            onCheckPermissions: { [weak permissionChecker] in
-                permissionChecker?.showPermissionStatus()
+            onCheckPermissions: { [weak self] in
+                self?.permissionChecker?.showPermissionStatus()
             }
         )
-
-        // Create status bar controller
-        statusBarController = StatusBarController(
-            config: config,
-            session: session,
-            callbacks: callbacks,
-            isLoginItemEnabled: { [weak loginItemManager] in
-                loginItemManager?.isEnabled() ?? false
-            }
-        )
-
-        // Start watching config file for changes
-        startConfigFileWatcher()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -158,7 +148,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Check if the session has expired
         if session.checkExpiry() {
             logger?.log("Session expired, revoking privileges")
-            let _ = privilegeManager.revoke()
+            _ = privilegeManager.revoke()
             stopReElevationTimer()
             statusBarController?.refresh()
             return
@@ -223,15 +213,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        let fd = open(path, O_EVTONLY)
-        guard fd >= 0 else {
+        let fileDescriptor = open(path, O_EVTONLY)
+        guard fileDescriptor >= 0 else {
             logger?.log("Failed to open config file for watching: \(path)")
             return
         }
-        configFileDescriptor = fd
+        configFileDescriptor = fileDescriptor
 
         let source = DispatchSource.makeFileSystemObjectSource(
-            fileDescriptor: fd,
+            fileDescriptor: fileDescriptor,
             eventMask: [.write, .rename, .delete],
             queue: .main
         )
@@ -241,8 +231,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         source.setCancelHandler { [weak self] in
-            if let fd = self?.configFileDescriptor, fd >= 0 {
-                close(fd)
+            if let descriptor = self?.configFileDescriptor, descriptor >= 0 {
+                close(descriptor)
                 self?.configFileDescriptor = -1
             }
         }

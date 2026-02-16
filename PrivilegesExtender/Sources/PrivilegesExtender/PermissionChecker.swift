@@ -19,7 +19,8 @@ final class PermissionChecker {
         alert.alertStyle = .informational
 
         var lines: [String] = []
-        lines.append("\(statusIcon(accessibilityGranted)) Accessibility: \(accessibilityGranted ? "Granted" : "Not Granted")")
+        let accessStatus = accessibilityGranted ? "Granted" : "Not Granted"
+        lines.append("\(statusIcon(accessibilityGranted)) Accessibility: \(accessStatus)")
         lines.append("\(statusIcon(cliAvailable)) PrivilegesCLI: \(cliAvailable ? "Available" : "Not Found")")
 
         let allGood = accessibilityGranted && cliAvailable
@@ -55,9 +56,8 @@ final class PermissionChecker {
 
     /// Checks whether PrivilegesCLI exists and is executable.
     private func checkCLIAvailable() -> Bool {
-        let fm = FileManager.default
         let path = (cliPath as NSString).expandingTildeInPath
-        return fm.isExecutableFile(atPath: path)
+        return FileManager.default.isExecutableFile(atPath: path)
     }
 
     /// Prompts the user to grant Accessibility permission via the system dialog.

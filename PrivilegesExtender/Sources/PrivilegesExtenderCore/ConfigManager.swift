@@ -22,7 +22,7 @@ public final class ConfigManager: Sendable {
             "Uninstalling software",
             "Run script",
             "Use software which requires elevation",
-            "Troubleshooting",
+            "Troubleshooting"
         ],
         durations: [
             DurationOption(label: "30 minutes", minutes: 30),
@@ -31,7 +31,7 @@ public final class ConfigManager: Sendable {
             DurationOption(label: "8 hours", minutes: 480),
             DurationOption(label: "24 hours", minutes: 1440),
             DurationOption(label: "Until logout", minutes: -1),
-            DurationOption(label: "Indefinitely", minutes: 0),
+            DurationOption(label: "Indefinitely", minutes: 0)
         ],
         privilegesCLIPath: "/Applications/Privileges.app/Contents/MacOS/PrivilegesCLI",
         reElevationIntervalSeconds: 1500,

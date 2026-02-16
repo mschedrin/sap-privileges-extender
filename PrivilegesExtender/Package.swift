@@ -10,7 +10,7 @@ var targets: [Target] = [
     .testTarget(
         name: "PrivilegesExtenderCoreTests",
         dependencies: ["PrivilegesExtenderCore"]
-    ),
+    )
 ]
 
 #if os(macOS)
@@ -26,7 +26,7 @@ let package = Package(
     name: "PrivilegesExtender",
     platforms: [.macOS(.v13)],
     dependencies: [
-        .package(url: "https://github.com/jpsim/Yams.git", from: "5.0.0"),
+        .package(url: "https://github.com/jpsim/Yams.git", from: "5.0.0")
     ],
     targets: targets
 )

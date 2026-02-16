@@ -119,11 +119,9 @@ final class NotificationDismisser {
     private func closeNotification(_ element: AXUIElement) -> Bool {
         guard let actionNames = getActionNames(element) else { return false }
 
-        for actionName in actionNames {
-            if actionName.contains("Close") {
-                let result = AXUIElementPerformAction(element, actionName as CFString)
-                return result == .success
-            }
+        for actionName in actionNames where actionName.contains("Close") {
+            let result = AXUIElementPerformAction(element, actionName as CFString)
+            return result == .success
         }
 
         // If no Close action found directly, try children for a Close button
@@ -131,10 +129,8 @@ final class NotificationDismisser {
             return false
         }
 
-        for child in children {
-            if closeNotification(child) {
-                return true
-            }
+        for child in children where closeNotification(child) {
+            return true
         }
 
         return false

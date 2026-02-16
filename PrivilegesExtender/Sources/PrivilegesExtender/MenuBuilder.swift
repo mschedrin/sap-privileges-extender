@@ -38,77 +38,57 @@ final class MenuBuilder: NSObject {
         let statusItem = NSMenuItem(title: statusText(), action: nil, keyEquivalent: "")
         statusItem.isEnabled = false
         menu.addItem(statusItem)
-
         menu.addItem(NSMenuItem.separator())
 
-        // Elevate Now submenu
+        addElevationItems(to: menu)
+        menu.addItem(NSMenuItem.separator())
+
+        addUtilityItems(to: menu)
+        menu.addItem(NSMenuItem.separator())
+
+        addSettingsItems(to: menu)
+        menu.addItem(NSMenuItem.separator())
+
+        let quitItem = NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        menu.addItem(quitItem)
+
+        return menu
+    }
+
+    private func addElevationItems(to menu: NSMenu) {
         let elevateItem = NSMenuItem(title: "Elevate Now", action: nil, keyEquivalent: "")
-        let elevateSubmenu = buildElevateSubmenu()
-        elevateItem.submenu = elevateSubmenu
+        elevateItem.submenu = buildElevateSubmenu()
         menu.addItem(elevateItem)
 
-        // Revoke Privileges
-        let revokeItem = NSMenuItem(
-            title: "Revoke Privileges",
-            action: #selector(revokeAction),
-            keyEquivalent: ""
-        )
+        let revokeItem = NSMenuItem(title: "Revoke Privileges", action: #selector(revokeAction), keyEquivalent: "")
         revokeItem.target = self
         revokeItem.isEnabled = isElevated
         menu.addItem(revokeItem)
+    }
 
-        menu.addItem(NSMenuItem.separator())
-
-        // View Logs
-        let viewLogsItem = NSMenuItem(
-            title: "View Logs",
-            action: #selector(viewLogsAction),
-            keyEquivalent: ""
-        )
+    private func addUtilityItems(to menu: NSMenu) {
+        let viewLogsItem = NSMenuItem(title: "View Logs", action: #selector(viewLogsAction), keyEquivalent: "")
         viewLogsItem.target = self
         menu.addItem(viewLogsItem)
 
-        // Open Configuration
         let openConfigItem = NSMenuItem(
-            title: "Open Configuration",
-            action: #selector(openConfigAction),
-            keyEquivalent: ""
+            title: "Open Configuration", action: #selector(openConfigAction), keyEquivalent: ""
         )
         openConfigItem.target = self
         menu.addItem(openConfigItem)
+    }
 
-        menu.addItem(NSMenuItem.separator())
-
-        // Start at Login toggle
-        let loginItem = NSMenuItem(
-            title: "Start at Login",
-            action: #selector(toggleLoginAction),
-            keyEquivalent: ""
-        )
+    private func addSettingsItems(to menu: NSMenu) {
+        let loginItem = NSMenuItem(title: "Start at Login", action: #selector(toggleLoginAction), keyEquivalent: "")
         loginItem.target = self
         loginItem.state = isLoginItemEnabled() ? .on : .off
         menu.addItem(loginItem)
 
-        // Check Permissions
         let checkPermItem = NSMenuItem(
-            title: "Check Permissions",
-            action: #selector(checkPermissionsAction),
-            keyEquivalent: ""
+            title: "Check Permissions", action: #selector(checkPermissionsAction), keyEquivalent: ""
         )
         checkPermItem.target = self
         menu.addItem(checkPermItem)
-
-        menu.addItem(NSMenuItem.separator())
-
-        // Quit
-        let quitItem = NSMenuItem(
-            title: "Quit",
-            action: #selector(NSApplication.terminate(_:)),
-            keyEquivalent: "q"
-        )
-        menu.addItem(quitItem)
-
-        return menu
     }
 
     // MARK: - Status Text
