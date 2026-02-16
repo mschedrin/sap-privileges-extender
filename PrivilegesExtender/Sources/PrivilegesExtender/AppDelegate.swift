@@ -10,6 +10,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var reElevationTimer: Timer?
     private var notificationDismisser: NotificationDismisser?
     private var loginItemManager: LoginItemManager?
+    private var permissionChecker: PermissionChecker?
 
     /// How often the timer ticks to check session state (seconds).
     /// Short interval so the UI countdown stays responsive.
@@ -45,6 +46,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let loginItemManager = LoginItemManager()
         self.loginItemManager = loginItemManager
 
+        // Set up permission checker
+        let permissionChecker = PermissionChecker(cliPath: config.privilegesCLIPath)
+        self.permissionChecker = permissionChecker
+
         // Set up menu callbacks
         let callbacks = MenuCallbacks(
             onElevate: { [weak self] reason, duration in
@@ -63,8 +68,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.loginItemManager?.toggle()
                 self?.statusBarController?.refresh()
             },
-            onCheckPermissions: {
-                // Placeholder — wired in Task 10
+            onCheckPermissions: { [weak permissionChecker] in
+                permissionChecker?.showPermissionStatus()
             }
         )
 

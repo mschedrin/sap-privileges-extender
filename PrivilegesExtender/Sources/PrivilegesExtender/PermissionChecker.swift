@@ -1,0 +1,72 @@
+import AppKit
+import PrivilegesExtenderCore
+
+/// Checks required system permissions and shows results to the user.
+final class PermissionChecker {
+    private let cliPath: String
+
+    init(cliPath: String) {
+        self.cliPath = cliPath
+    }
+
+    /// Checks all required permissions and displays results in an alert dialog.
+    func showPermissionStatus() {
+        let accessibilityGranted = AXIsProcessTrusted()
+        let cliAvailable = checkCLIAvailable()
+
+        let alert = NSAlert()
+        alert.messageText = "Permission Status"
+        alert.alertStyle = .informational
+
+        var lines: [String] = []
+        lines.append("\(statusIcon(accessibilityGranted)) Accessibility: \(accessibilityGranted ? "Granted" : "Not Granted")")
+        lines.append("\(statusIcon(cliAvailable)) PrivilegesCLI: \(cliAvailable ? "Available" : "Not Found")")
+
+        let allGood = accessibilityGranted && cliAvailable
+        if allGood {
+            lines.append("")
+            lines.append("All permissions are configured correctly.")
+        } else {
+            lines.append("")
+            if !accessibilityGranted {
+                lines.append("Grant Accessibility in System Settings > Privacy & Security > Accessibility.")
+            }
+            if !cliAvailable {
+                lines.append("PrivilegesCLI not found at: \(cliPath)")
+            }
+        }
+
+        alert.informativeText = lines.joined(separator: "\n")
+
+        if !accessibilityGranted {
+            alert.addButton(withTitle: "Open Accessibility Settings")
+            alert.addButton(withTitle: "OK")
+        } else {
+            alert.addButton(withTitle: "OK")
+        }
+
+        let response = alert.runModal()
+
+        // If user clicked "Open Accessibility Settings"
+        if !accessibilityGranted && response == .alertFirstButtonReturn {
+            promptForAccessibility()
+        }
+    }
+
+    /// Checks whether PrivilegesCLI exists and is executable.
+    private func checkCLIAvailable() -> Bool {
+        let fm = FileManager.default
+        let path = (cliPath as NSString).expandingTildeInPath
+        return fm.isExecutableFile(atPath: path)
+    }
+
+    /// Prompts the user to grant Accessibility permission via the system dialog.
+    private func promptForAccessibility() {
+        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue(): true] as CFDictionary
+        AXIsProcessTrustedWithOptions(options)
+    }
+
+    private func statusIcon(_ granted: Bool) -> String {
+        granted ? "✓" : "✗"
+    }
+}

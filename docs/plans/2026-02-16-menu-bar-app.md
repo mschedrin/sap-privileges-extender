@@ -240,12 +240,12 @@ log_file: "~/Library/Logs/privileges-extender.log"
 - [x] Run `swift build` — must compile before next task
 
 ### Task 10: Permission checker
-- [ ] Create `Sources/PrivilegesExtender/PermissionChecker.swift`
-- [ ] Check Accessibility permission: `AXIsProcessTrusted()` — prompt with `kAXTrustedCheckOptionPrompt` if not granted
-- [ ] Check PrivilegesCLI availability: verify file exists and is executable
-- [ ] Show results in an `NSAlert` dialog listing each permission and its status (checkmark/cross)
-- [ ] Wire to "Check Permissions" menu item
-- [ ] Run `swift build` — must compile before next task
+- [x] Create `Sources/PrivilegesExtender/PermissionChecker.swift`
+- [x] Check Accessibility permission: `AXIsProcessTrusted()` — prompt with `kAXTrustedCheckOptionPrompt` if not granted
+- [x] Check PrivilegesCLI availability: verify file exists and is executable
+- [x] Show results in an `NSAlert` dialog listing each permission and its status (checkmark/cross)
+- [x] Wire to "Check Permissions" menu item
+- [x] Run `swift build` — must compile before next task
 
 ### Task 11: Log viewer
 - [ ] Create `Sources/PrivilegesExtender/LogViewerWindow.swift` — SwiftUI view hosted in `NSWindow`
