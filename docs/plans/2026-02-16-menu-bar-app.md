@@ -182,16 +182,16 @@ log_file: "~/Library/Logs/privileges-extender.log"
 - [x] Run `swift test` — must pass before next task
 
 ### Task 4: Elevation session state machine (Core)
-- [ ] Create `Sources/PrivilegesExtenderCore/ElevationSession.swift` — tracks active elevation state: reason, start time, chosen duration, re-elevation interval
-- [ ] Define `ElevationState` enum: `.idle`, `.active(reason, startTime, duration)`, `.expired`
-- [ ] Implement `start(reason:duration:reElevationInterval:)` — transition to active, record start time
-- [ ] Implement duration expiry logic: `isExpired` computed property based on elapsed time vs chosen duration
-- [ ] Handle special durations: "Until logout" (minutes == -1, never expires while running), "Indefinitely" (minutes == 0, never expires)
-- [ ] Implement `stop()` — transition to idle
-- [ ] Implement `remainingTime` computed property for UI display (returns `TimeInterval?`)
-- [ ] Implement `shouldReElevate(now:)` — returns true if enough time passed since last elevation and session not expired
-- [ ] Write `Tests/PrivilegesExtenderCoreTests/ElevationSessionTests.swift` — test state transitions, expiry logic for all duration types, remaining time calculation, re-elevation timing
-- [ ] Run `swift test` — must pass before next task
+- [x] Create `Sources/PrivilegesExtenderCore/ElevationSession.swift` — tracks active elevation state: reason, start time, chosen duration, re-elevation interval
+- [x] Define `ElevationState` enum: `.idle`, `.active(reason, startTime, duration)`, `.expired`
+- [x] Implement `start(reason:duration:reElevationInterval:)` — transition to active, record start time
+- [x] Implement duration expiry logic: `isExpired` computed property based on elapsed time vs chosen duration
+- [x] Handle special durations: "Until logout" (minutes == -1, never expires while running), "Indefinitely" (minutes == 0, never expires)
+- [x] Implement `stop()` — transition to idle
+- [x] Implement `remainingTime` computed property for UI display (returns `TimeInterval?`)
+- [x] Implement `shouldReElevate(now:)` — returns true if enough time passed since last elevation and session not expired
+- [x] Write `Tests/PrivilegesExtenderCoreTests/ElevationSessionTests.swift` — test state transitions, expiry logic for all duration types, remaining time calculation, re-elevation timing
+- [x] Run `swift test` — must pass before next task
 
 ### Task 5: Full menu bar UI with reasons and durations
 - [ ] Create `Sources/PrivilegesExtender/MenuBuilder.swift` — builds the full `NSMenu` from `AppConfig`
