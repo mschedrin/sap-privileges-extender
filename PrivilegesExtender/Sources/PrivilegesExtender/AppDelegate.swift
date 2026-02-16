@@ -11,6 +11,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var notificationDismisser: NotificationDismisser?
     private var loginItemManager: LoginItemManager?
     private var permissionChecker: PermissionChecker?
+    private var logViewerWindow: LogViewerWindow?
 
     /// How often the timer ticks to check session state (seconds).
     /// Short interval so the UI countdown stays responsive.
@@ -50,6 +51,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let permissionChecker = PermissionChecker(cliPath: config.privilegesCLIPath)
         self.permissionChecker = permissionChecker
 
+        // Set up log viewer window
+        let logViewerWindow = LogViewerWindow(logger: logger)
+        self.logViewerWindow = logViewerWindow
+
         // Set up menu callbacks
         let callbacks = MenuCallbacks(
             onElevate: { [weak self] reason, duration in
@@ -58,8 +63,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             onRevoke: { [weak self] in
                 self?.handleRevoke()
             },
-            onViewLogs: {
-                // Placeholder — wired in Task 11
+            onViewLogs: { [weak logViewerWindow] in
+                logViewerWindow?.show()
             },
             onOpenConfiguration: {
                 // Placeholder — wired in Task 12

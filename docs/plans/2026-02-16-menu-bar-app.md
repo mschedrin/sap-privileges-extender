@@ -248,11 +248,11 @@ log_file: "~/Library/Logs/privileges-extender.log"
 - [x] Run `swift build` — must compile before next task
 
 ### Task 11: Log viewer
-- [ ] Create `Sources/PrivilegesExtender/LogViewerWindow.swift` — SwiftUI view hosted in `NSWindow`
-- [ ] Read and display contents of the log file (tail, auto-refresh)
-- [ ] Add basic controls: refresh button, clear log, scroll to bottom
-- [ ] Wire to "View Logs" menu item — open/bring to front
-- [ ] Run `swift build` — must compile before next task
+- [x] Create `Sources/PrivilegesExtender/LogViewerWindow.swift` — SwiftUI view hosted in `NSWindow`
+- [x] Read and display contents of the log file (tail, auto-refresh)
+- [x] Add basic controls: refresh button, clear log, scroll to bottom
+- [x] Wire to "View Logs" menu item — open/bring to front
+- [x] Run `swift build` — must compile before next task
 
 ### Task 12: "Open Configuration" and custom reason actions
 - [ ] "Open Configuration" — open config.yaml in default editor via `NSWorkspace.shared.open(URL)`
