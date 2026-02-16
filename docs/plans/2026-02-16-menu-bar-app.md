@@ -150,17 +150,17 @@ log_file: "~/Library/Logs/privileges-extender.log"
 ## Implementation Steps
 
 ### Task 1: Set up SPM project with two-target architecture
-- [ ] Create `Package.swift` with:
+- [x] Create `Package.swift` with:
   - Library target `PrivilegesExtenderCore` (Sources/PrivilegesExtenderCore) with dependency on `Yams`
   - Executable target `PrivilegesExtender` (Sources/PrivilegesExtender) depending on `PrivilegesExtenderCore`, platform restricted to macOS 13+
   - Test target `PrivilegesExtenderCoreTests` depending on `PrivilegesExtenderCore`
-- [ ] Create `Sources/PrivilegesExtender/main.swift` — set up `NSApplication` with `AppDelegate`
-- [ ] Create `Sources/PrivilegesExtender/AppDelegate.swift` — `NSApplicationDelegate` that creates an `NSStatusItem` with a placeholder menu (just "Quit")
-- [ ] Create `Sources/PrivilegesExtender/StatusBarController.swift` — owns the `NSStatusItem`, sets up the status bar button with an SF Symbol icon (`lock.shield`)
-- [ ] Create placeholder files in `Sources/PrivilegesExtenderCore/` (empty `Config.swift` with a public struct)
-- [ ] Verify the app builds with `swift build` and shows a menu bar icon when run
-- [ ] Create `Tests/PrivilegesExtenderCoreTests/` with a placeholder test
-- [ ] Run `swift test` — must pass before next task
+- [x] Create `Sources/PrivilegesExtender/main.swift` — set up `NSApplication` with `AppDelegate`
+- [x] Create `Sources/PrivilegesExtender/AppDelegate.swift` — `NSApplicationDelegate` that creates an `NSStatusItem` with a placeholder menu (just "Quit")
+- [x] Create `Sources/PrivilegesExtender/StatusBarController.swift` — owns the `NSStatusItem`, sets up the status bar button with an SF Symbol icon (`lock.shield`)
+- [x] Create placeholder files in `Sources/PrivilegesExtenderCore/` (empty `Config.swift` with a public struct)
+- [x] Verify the app builds with `swift build` and shows a menu bar icon when run
+- [x] Create `Tests/PrivilegesExtenderCoreTests/` with a placeholder test
+- [x] Run `swift test` — must pass before next task
 
 ### Task 2: Configuration system (Core)
 - [ ] Create `Sources/PrivilegesExtenderCore/Config.swift` — public `Codable` structs: `AppConfig` (reasons, durations, cli path, re-elevation interval, dismiss notifications, log file), `DurationOption` (label, minutes)

@@ -1,2 +1,6 @@
 notes.md
 *.app
+# ralphex progress logs
+.ralphex/progress/
+# Swift build artifacts
+PrivilegesExtender/.build/
