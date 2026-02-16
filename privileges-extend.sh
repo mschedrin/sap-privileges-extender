@@ -2,7 +2,9 @@
 # privileges-extend.sh — Re-elevates admin privileges and dismisses Privileges notifications
 
 PRIVILEGES_CLI="/Applications/Privileges.app/Contents/MacOS/PrivilegesCLI"
+DISMISS_APP="$HOME/Applications/DismissPrivilegesNotifications.app"
 LOG_FILE="$HOME/Library/Logs/privileges-extender.log"
+DISMISS_LOG="$HOME/Library/Logs/privileges-extender-dismiss.log"
 
 log() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') $1" >> "$LOG_FILE"
@@ -28,31 +30,18 @@ fi
 # Wait for any notification banner to appear
 sleep 3
 
-# Dismiss only Privileges notification banners via AppleScript
-osascript -e '
-tell application "System Events"
-    tell application process "NotificationCenter"
-        try
-            set _groups to groups of scroll area 1 of group 1 of group 1 of window "Notification Center"
-            repeat with _group in _groups
-                set _heading to ""
-                try
-                    set _heading to value of static text 1 of _group
-                end try
-                if _heading contains "Privileges" then
-                    try
-                        set _actions to actions of _group
-                        repeat with _action in _actions
-                            if description of _action contains "Close" then
-                                perform _action
-                            end if
-                        end repeat
-                    end try
-                end if
-            end repeat
-        end try
-    end tell
-end tell
-' >> "$LOG_FILE" 2>&1
-
-log "Notification dismissal pass complete"
+# Dismiss Privileges notifications using the helper .app
+# The .app runs as its own process with Accessibility permission,
+# unlike raw osascript which is blocked when run from launchd.
+if [ -d "$DISMISS_APP" ]; then
+    open -W "$DISMISS_APP"
+    if [ -f "$DISMISS_LOG" ]; then
+        DISMISS_RESULT=$(cat "$DISMISS_LOG")
+        log "Notification dismissal result: $DISMISS_RESULT"
+    else
+        log "WARNING: Dismiss log not created"
+    fi
+else
+    log "ERROR: Helper app not found at $DISMISS_APP"
+    log "Run install.sh to set it up"
+fi

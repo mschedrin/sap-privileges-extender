@@ -5,6 +5,8 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 INSTALL_DIR="$HOME/.local/bin"
+HELPER_APP_DIR="$HOME/Applications"
+HELPER_APP="$HELPER_APP_DIR/DismissPrivilegesNotifications.app"
 LAUNCH_AGENTS_DIR="$HOME/Library/LaunchAgents"
 PLIST_NAME="com.user.privileges-extender.plist"
 NCPREFS="$HOME/Library/Preferences/com.apple.ncprefs.plist"
@@ -54,23 +56,55 @@ if modified:
 echo "Restarting NotificationCenter..."
 killall NotificationCenter 2>/dev/null || true
 
-# 2. Install the script
-echo "Installing script to $INSTALL_DIR..."
+# 2. Build and install the helper app for notification dismissal
+echo "Building notification dismissal helper app..."
+mkdir -p "$HELPER_APP_DIR"
+mkdir -p "$HELPER_APP/Contents/MacOS"
+swiftc -o "$HELPER_APP/Contents/MacOS/DismissPrivilegesNotifications" \
+    -framework Cocoa "$SCRIPT_DIR/helper/DismissNotifications.swift"
+cat > "$HELPER_APP/Contents/Info.plist" << 'PLIST'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleIdentifier</key>
+    <string>com.user.dismiss-privileges-notifications</string>
+    <key>CFBundleName</key>
+    <string>DismissPrivilegesNotifications</string>
+    <key>CFBundleExecutable</key>
+    <string>DismissPrivilegesNotifications</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>LSUIElement</key>
+    <true/>
+    <key>NSAppleEventsUsageDescription</key>
+    <string>This app needs to control System Events to dismiss notifications.</string>
+</dict>
+</plist>
+PLIST
+codesign --force --sign - "$HELPER_APP"
+echo "Helper app installed to $HELPER_APP"
+
+# 3. Install the main script and AppleScript
+echo "Installing scripts to $INSTALL_DIR..."
 mkdir -p "$INSTALL_DIR"
 cp "$SCRIPT_DIR/privileges-extend.sh" "$INSTALL_DIR/privileges-extend.sh"
 chmod +x "$INSTALL_DIR/privileges-extend.sh"
+cp "$SCRIPT_DIR/helper/dismiss-notifications.applescript" "$INSTALL_DIR/dismiss-notifications.scpt"
 
-# 3. Install the LaunchAgent plist
+# 4. Install the LaunchAgent plist
 echo "Installing LaunchAgent..."
 mkdir -p "$LAUNCH_AGENTS_DIR"
 cp "$SCRIPT_DIR/$PLIST_NAME" "$LAUNCH_AGENTS_DIR/$PLIST_NAME"
 
-# 4. Unload if already loaded, then load the agent
+# 5. Unload if already loaded, then load the agent
 echo "Loading agent..."
 launchctl unload "$LAUNCH_AGENTS_DIR/$PLIST_NAME" 2>/dev/null || true
 launchctl load "$LAUNCH_AGENTS_DIR/$PLIST_NAME"
 
-# 5. Run once immediately
+# 6. Run once immediately
 echo "Running initial elevation..."
 bash "$INSTALL_DIR/privileges-extend.sh"
 
@@ -78,6 +112,7 @@ echo ""
 echo "=== Installation complete ==="
 echo "Log: ~/Library/Logs/privileges-extender.log"
 echo ""
-echo "IMPORTANT: Grant Accessibility permission to Terminal"
-echo "  System Settings > Privacy & Security > Accessibility > Terminal (enable)"
-echo "  This is needed for notification dismissal via AppleScript."
+echo "IMPORTANT: Grant Accessibility permission to the helper app:"
+echo "  System Settings > Privacy & Security > Accessibility"
+echo "  Click '+', press Cmd+Shift+G, type ~/Applications/"
+echo "  Select DismissPrivilegesNotifications.app and enable it"

@@ -2,9 +2,11 @@
 # uninstall.sh — Remove the Privileges Extender agent
 
 INSTALL_DIR="$HOME/.local/bin"
+HELPER_APP="$HOME/Applications/DismissPrivilegesNotifications.app"
 LAUNCH_AGENTS_DIR="$HOME/Library/LaunchAgents"
 PLIST_NAME="com.user.privileges-extender.plist"
 LOG_FILE="$HOME/Library/Logs/privileges-extender.log"
+DISMISS_LOG="$HOME/Library/Logs/privileges-extender-dismiss.log"
 NCPREFS="$HOME/Library/Preferences/com.apple.ncprefs.plist"
 AGENT_BUNDLE_ID="corp.sap.privileges.agent"
 
@@ -18,7 +20,10 @@ launchctl unload "$LAUNCH_AGENTS_DIR/$PLIST_NAME" 2>/dev/null || true
 echo "Removing files..."
 rm -f "$LAUNCH_AGENTS_DIR/$PLIST_NAME"
 rm -f "$INSTALL_DIR/privileges-extend.sh"
+rm -f "$INSTALL_DIR/dismiss-notifications.scpt"
+rm -rf "$HELPER_APP"
 rm -f "$LOG_FILE"
+rm -f "$DISMISS_LOG"
 
 # 3. Restore notification flags for Privileges Agent
 echo "Restoring notification settings for $AGENT_BUNDLE_ID..."
@@ -62,3 +67,5 @@ killall NotificationCenter 2>/dev/null || true
 
 echo ""
 echo "=== Uninstall complete ==="
+echo "Note: You can manually remove DismissPrivilegesNotifications from"
+echo "  System Settings > Privacy & Security > Accessibility"
