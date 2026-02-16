@@ -261,13 +261,13 @@ log_file: "~/Library/Logs/privileges-extender.log"
 - [x] Run `swift build` — must compile before next task
 
 ### Task 13: Build and bundle script
-- [ ] Create `scripts/build.sh` — runs `swift build -c release`, creates `.app` bundle structure:
+- [x] Create `scripts/build.sh` — runs `swift build -c release`, creates `.app` bundle structure:
   - `PrivilegesExtender.app/Contents/MacOS/PrivilegesExtender` (binary)
   - `PrivilegesExtender.app/Contents/Info.plist` (bundle ID: `com.user.privileges-extender`, LSUIElement: true)
   - `PrivilegesExtender.app/Contents/Resources/default-config.yaml`
-- [ ] Add `codesign --force --sign -` for ad-hoc code signing
-- [ ] Verify built app runs correctly from the bundle
-- [ ] Run `swift test` — must pass before next task
+- [x] Add `codesign --force --sign -` for ad-hoc code signing
+- [x] Verify built app runs correctly from the bundle
+- [x] Run `swift test` — must pass before next task
 
 ### Task 14: Install and uninstall scripts
 - [ ] Create `scripts/install.sh` — copies `.app` to `~/Applications/`, creates config directory, copies default config if none exists
