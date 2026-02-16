@@ -163,12 +163,12 @@ log_file: "~/Library/Logs/privileges-extender.log"
 - [x] Run `swift test` — must pass before next task
 
 ### Task 2: Configuration system (Core)
-- [ ] Create `Sources/PrivilegesExtenderCore/Config.swift` — public `Codable` structs: `AppConfig` (reasons, durations, cli path, re-elevation interval, dismiss notifications, log file), `DurationOption` (label, minutes)
-- [ ] Create `Sources/PrivilegesExtenderCore/ConfigManager.swift` — loads config from `~/Library/Application Support/PrivilegesExtender/config.yaml`, creates directory and default config if missing, provides `reload()` method
-- [ ] Create `Resources/default-config.yaml` with the default configuration (reasons list, duration options, paths)
-- [ ] Write `Tests/PrivilegesExtenderCoreTests/ConfigTests.swift` — test Config model encoding/decoding (YAML round-trip), default values, special duration values (-1, 0)
-- [ ] Write `Tests/PrivilegesExtenderCoreTests/ConfigManagerTests.swift` — loading valid config, handling missing file (creates default), handling malformed YAML
-- [ ] Run `swift test` — must pass before next task
+- [x] Create `Sources/PrivilegesExtenderCore/Config.swift` — public `Codable` structs: `AppConfig` (reasons, durations, cli path, re-elevation interval, dismiss notifications, log file), `DurationOption` (label, minutes)
+- [x] Create `Sources/PrivilegesExtenderCore/ConfigManager.swift` — loads config from `~/Library/Application Support/PrivilegesExtender/config.yaml`, creates directory and default config if missing, provides `reload()` method
+- [x] Create `Resources/default-config.yaml` with the default configuration (reasons list, duration options, paths)
+- [x] Write `Tests/PrivilegesExtenderCoreTests/ConfigTests.swift` — test Config model encoding/decoding (YAML round-trip), default values, special duration values (-1, 0)
+- [x] Write `Tests/PrivilegesExtenderCoreTests/ConfigManagerTests.swift` — loading valid config, handling missing file (creates default), handling malformed YAML
+- [x] Run `swift test` — must pass before next task
 
 ### Task 3: Privilege manager (Core)
 - [ ] Create `Sources/PrivilegesExtenderCore/PrivilegeManager.swift` — wraps `Foundation.Process` calls to PrivilegesCLI

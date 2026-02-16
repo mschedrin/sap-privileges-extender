@@ -1,0 +1,28 @@
+reasons:
+  - Update software
+  - Installing software
+  - Uninstalling software
+  - Run script
+  - Use software which requires elevation
+  - Troubleshooting
+
+durations:
+  - label: "30 minutes"
+    minutes: 30
+  - label: "1 hour"
+    minutes: 60
+  - label: "2 hours"
+    minutes: 120
+  - label: "8 hours"
+    minutes: 480
+  - label: "24 hours"
+    minutes: 1440
+  - label: "Until logout"
+    minutes: -1
+  - label: "Indefinitely"
+    minutes: 0
+
+privileges_cli_path: "/Applications/Privileges.app/Contents/MacOS/PrivilegesCLI"
+re_elevation_interval_seconds: 1500
+dismiss_notifications: true
+log_file: "~/Library/Logs/privileges-extender.log"
