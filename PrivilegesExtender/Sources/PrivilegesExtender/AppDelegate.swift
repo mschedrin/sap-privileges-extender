@@ -8,6 +8,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var privilegeManager: PrivilegeManager?
     private var logger: Logger?
     private var reElevationTimer: Timer?
+    private var notificationDismisser: NotificationDismisser?
 
     /// How often the timer ticks to check session state (seconds).
     /// Short interval so the UI countdown stays responsive.
@@ -33,6 +34,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             reElevationIntervalSeconds: TimeInterval(config.reElevationIntervalSeconds)
         )
         self.session = session
+
+        // Set up notification dismisser
+        if config.dismissNotifications {
+            self.notificationDismisser = NotificationDismisser(logger: logger)
+        }
 
         // Set up menu callbacks
         let callbacks = MenuCallbacks(
@@ -150,8 +156,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Dismiss notifications if configured
         if config?.dismissNotifications ?? false {
-            // NotificationDismisser will be implemented in Task 8
-            // For now, just a placeholder call site
+            notificationDismisser?.dismissPrivilegesNotifications()
         }
 
         // Refresh the menu to update remaining time display

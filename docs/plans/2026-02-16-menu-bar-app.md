@@ -222,15 +222,15 @@ log_file: "~/Library/Logs/privileges-extender.log"
 - [x] Run `swift build` — must compile before next task
 
 ### Task 8: Notification dismissal via AXUIElement
-- [ ] Create `Sources/PrivilegesExtender/NotificationDismisser.swift`
-- [ ] Implement `dismissPrivilegesNotifications()` using `AXUIElement` API:
+- [x] Create `Sources/PrivilegesExtender/NotificationDismisser.swift`
+- [x] Implement `dismissPrivilegesNotifications()` using `AXUIElement` API:
   - Get `NotificationCenter` process via `NSWorkspace`
   - Navigate UI hierarchy: focused window → groups → scroll areas → notification groups
   - Find notifications with heading containing "Privileges"
   - Perform "Close" action on matching notifications
-- [ ] Add logging for found/dismissed counts via `Logger`
-- [ ] Call from elevation timer tick after each re-elevation (with configurable delay)
-- [ ] Run `swift build` — must compile before next task
+- [x] Add logging for found/dismissed counts via `Logger`
+- [x] Call from elevation timer tick after each re-elevation (with configurable delay)
+- [x] Run `swift build` — must compile before next task
 
 ### Task 9: Login item management
 - [ ] Create `Sources/PrivilegesExtender/LoginItemManager.swift`
