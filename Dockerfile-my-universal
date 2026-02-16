@@ -1,0 +1,96 @@
+# Universal development image with Swift compiler, Go toolchain, and ralphex
+# Based on Ubuntu (swift:6.2.3-noble) instead of Alpine for full Swift support
+FROM ghcr.io/umputun/ralphex:latest AS ralphex
+
+FROM swift:6.2.3-noble
+
+LABEL org.opencontainers.image.description="Autonomous plan execution with Claude Code - My Universal development image"
+
+# baseimage-compatible environment variables
+ENV TERM=xterm-color \
+    TIME_ZONE=America/Chicago \
+    APP_USER=app \
+    APP_UID=1001 \
+    DOCKER_GID=999 \
+    USE_BUILTIN_RIPGREP=0 \
+    RALPHEX_DOCKER=1
+
+# install base tools (matching ralphex Dockerfile + extras)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    nodejs npm \
+    python3 python3-pip \
+    ripgrep fzf git openssh-client bash \
+    make gcc \
+    gosu \
+    jq shellcheck unzip wget curl \
+    tzdata \
+    && rm -rf /var/lib/apt/lists/*
+
+# set timezone
+RUN cp /usr/share/zoneinfo/${TIME_ZONE} /etc/localtime && \
+    echo "${TIME_ZONE}" > /etc/timezone
+
+# create app user (matching baseimage conventions)
+RUN groupadd -g ${DOCKER_GID} docker && \
+    groupadd -g ${APP_UID} app && \
+    useradd -u ${APP_UID} -g app -G docker -m -s /bin/bash app
+
+# install claude code and codex globally
+RUN npm install -g @anthropic-ai/claude-code @openai/codex && \
+    command -v claude >/dev/null || { echo "error: claude CLI not found"; exit 1; } && \
+    command -v codex >/dev/null || { echo "error: codex CLI not found"; exit 1; }
+
+# install latest go from official distribution
+ARG GO_VERSION=1.26.0
+RUN ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/') && \
+    wget -qO- "https://go.dev/dl/go${GO_VERSION}.linux-${ARCH}.tar.gz" | tar -xz -C /usr/local
+
+# set go environment
+ENV GOROOT=/usr/local/go
+ENV GOPATH=/home/app/go
+ENV PATH="${PATH}:${GOROOT}/bin:${GOPATH}/bin"
+
+# install go development tools (golangci-lint, moq, goimports)
+RUN wget -qO- https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b /usr/local/bin && \
+    GOBIN=/usr/local/bin go install github.com/matryer/moq@latest && \
+    GOBIN=/usr/local/bin go install golang.org/x/tools/cmd/goimports@latest
+
+# install additional development tools
+RUN pip3 install --break-system-packages yamllint && \
+    ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/') && \
+    wget -qO /usr/local/bin/yq "https://github.com/mikefarah/yq/releases/latest/download/yq_linux_${ARCH}" && \
+    chmod +x /usr/local/bin/yq
+
+# install Swift development tools (linter + formatter)
+ARG SWIFTLINT_VERSION=0.63.2
+RUN ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/') && \
+    wget -qO /tmp/swiftlint.zip "https://github.com/realm/SwiftLint/releases/download/${SWIFTLINT_VERSION}/swiftlint_linux_${ARCH}.zip" && \
+    unzip -o /tmp/swiftlint.zip swiftlint -d /tmp && \
+    mv /tmp/swiftlint /usr/local/bin/swiftlint && \
+    chmod +x /usr/local/bin/swiftlint && \
+    rm -f /tmp/swiftlint.zip
+
+ARG SWIFTFORMAT_VERSION=0.59.1
+RUN ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/aarch64/') && \
+    wget -qO /tmp/swiftformat.zip "https://github.com/nicklockwood/SwiftFormat/releases/download/${SWIFTFORMAT_VERSION}/swiftformat_linux_${ARCH}.zip" && \
+    unzip -o /tmp/swiftformat.zip -d /tmp && \
+    mv /tmp/swiftformat_linux_${ARCH} /usr/local/bin/swiftformat && \
+    chmod +x /usr/local/bin/swiftformat && \
+    rm -f /tmp/swiftformat.zip
+
+# copy ralphex binary and init script from official image
+COPY --from=ralphex /srv/ralphex /srv/ralphex
+COPY --from=ralphex /srv/init.sh /srv/init.sh
+RUN chmod +x /srv/ralphex /srv/init.sh
+
+# copy baseimage-compatible entrypoint (adapted for Ubuntu — uses gosu instead of su-exec)
+COPY scripts/docker-init.sh /init.sh
+RUN chmod +x /init.sh
+
+# expose web dashboard port
+EXPOSE 8080
+
+WORKDIR /workspace
+
+ENTRYPOINT ["/init.sh"]
+CMD ["/srv/ralphex"]
