@@ -152,4 +152,41 @@ final class ConfigManagerTests: XCTestCase {
         let manager = ConfigManager(configFilePath: customPath)
         XCTAssertEqual(manager.path, customPath)
     }
+
+    func testConfigPropertyReturnsLoadedConfig() throws {
+        let configPath = "\(tempDir!)/config.yaml"
+        let customConfig = AppConfig(
+            reasons: ["Property test"],
+            durations: [DurationOption(label: "15 minutes", minutes: 15)]
+        )
+        let yamlString = try YAMLEncoder().encode(customConfig)
+        try yamlString.write(toFile: configPath, atomically: true, encoding: .utf8)
+
+        let manager = ConfigManager(configFilePath: configPath)
+        let config = manager.config
+
+        XCTAssertEqual(config.reasons, ["Property test"])
+        XCTAssertEqual(config.durations.count, 1)
+    }
+
+    func testConfigPropertyReturnsDefaultWhenFileIsMissing() {
+        let configPath = "\(tempDir!)/nonexistent/config.yaml"
+        let manager = ConfigManager(configFilePath: configPath)
+
+        // The config property should return default config (file creation may fail
+        // if parent directory doesn't exist in the convenience getter, but it falls back)
+        let config = manager.config
+        XCTAssertEqual(config.reasons.count, 6)
+    }
+
+    func testConfigPropertyReturnsDefaultWhenFileIsMalformed() throws {
+        let configPath = "\(tempDir!)/config.yaml"
+        try "not: [valid yaml config".write(toFile: configPath, atomically: true, encoding: .utf8)
+
+        let manager = ConfigManager(configFilePath: configPath)
+        let config = manager.config
+
+        // Should fall back to default on parse error
+        XCTAssertEqual(config, ConfigManager.defaultConfig)
+    }
 }

@@ -82,6 +82,11 @@ public final class ConfigManager: Sendable {
         try yamlString.write(toFile: configFilePath, atomically: true, encoding: .utf8)
     }
 
+    /// Loads and returns the current config, falling back to the default on error.
+    public var config: AppConfig {
+        (try? load()) ?? Self.defaultConfig
+    }
+
     /// The path to the config file being managed.
     public var path: String {
         configFilePath

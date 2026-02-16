@@ -12,6 +12,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var loginItemManager: LoginItemManager?
     private var permissionChecker: PermissionChecker?
     private var logViewerWindow: LogViewerWindow?
+    private var configFileWatcher: DispatchSourceFileSystemObject?
+    private var configFileDescriptor: Int32 = -1
 
     /// How often the timer ticks to check session state (seconds).
     /// Short interval so the UI countdown stays responsive.
@@ -66,8 +68,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             onViewLogs: { [weak logViewerWindow] in
                 logViewerWindow?.show()
             },
-            onOpenConfiguration: {
-                // Placeholder — wired in Task 12
+            onOpenConfiguration: { [weak self] in
+                self?.openConfiguration()
             },
             onToggleLoginItem: { [weak self] in
                 self?.loginItemManager?.toggle()
@@ -87,10 +89,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 loginItemManager?.isEnabled() ?? false
             }
         )
+
+        // Start watching config file for changes
+        startConfigFileWatcher()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
         stopReElevationTimer()
+        stopConfigFileWatcher()
     }
 
     // MARK: - Actions
@@ -180,5 +186,96 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Refresh the menu to update remaining time display
         statusBarController?.refresh()
+    }
+
+    // MARK: - Open Configuration
+
+    private func openConfiguration() {
+        guard let configManager = configManager else { return }
+        let path = configManager.path
+        let url = URL(fileURLWithPath: path)
+
+        // Ensure the config file exists before trying to open it
+        if !FileManager.default.fileExists(atPath: path) {
+            do {
+                _ = try configManager.load()
+            } catch {
+                logger?.log("Failed to create default config: \(error)")
+            }
+        }
+
+        NSWorkspace.shared.open(url)
+    }
+
+    // MARK: - Config File Watcher
+
+    private func startConfigFileWatcher() {
+        guard let configManager = configManager else { return }
+        let path = configManager.path
+
+        // Ensure the config file exists so we can open a file descriptor for it
+        if !FileManager.default.fileExists(atPath: path) {
+            do {
+                _ = try configManager.load()
+            } catch {
+                logger?.log("Failed to create config for watcher: \(error)")
+                return
+            }
+        }
+
+        let fd = open(path, O_EVTONLY)
+        guard fd >= 0 else {
+            logger?.log("Failed to open config file for watching: \(path)")
+            return
+        }
+        configFileDescriptor = fd
+
+        let source = DispatchSource.makeFileSystemObjectSource(
+            fileDescriptor: fd,
+            eventMask: [.write, .rename, .delete],
+            queue: .main
+        )
+
+        source.setEventHandler { [weak self] in
+            self?.handleConfigFileChange()
+        }
+
+        source.setCancelHandler { [weak self] in
+            if let fd = self?.configFileDescriptor, fd >= 0 {
+                close(fd)
+                self?.configFileDescriptor = -1
+            }
+        }
+
+        source.resume()
+        configFileWatcher = source
+    }
+
+    private func stopConfigFileWatcher() {
+        configFileWatcher?.cancel()
+        configFileWatcher = nil
+    }
+
+    private func handleConfigFileChange() {
+        guard let configManager = configManager else { return }
+
+        do {
+            let newConfig = try configManager.reload()
+            logger?.log("Configuration reloaded from file change")
+            statusBarController?.updateConfig(newConfig)
+        } catch {
+            logger?.log("Failed to reload config: \(error)")
+        }
+
+        // If the file was deleted or renamed, restart the watcher
+        // (the old file descriptor may no longer be valid)
+        if let flags = configFileWatcher?.data,
+           flags.contains(.delete) || flags.contains(.rename) {
+            stopConfigFileWatcher()
+            // Delay restart slightly to allow the new file to appear (e.g., atomic save)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                self?.startConfigFileWatcher()
+            }
+        }
     }
 }

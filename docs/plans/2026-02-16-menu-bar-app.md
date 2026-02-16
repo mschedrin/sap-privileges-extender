@@ -255,10 +255,10 @@ log_file: "~/Library/Logs/privileges-extender.log"
 - [x] Run `swift build` — must compile before next task
 
 ### Task 12: "Open Configuration" and custom reason actions
-- [ ] "Open Configuration" — open config.yaml in default editor via `NSWorkspace.shared.open(URL)`
-- [ ] Watch config file for changes (`DispatchSource.makeFileSystemObjectSource`) and reload automatically via `ConfigManager.reload()`
-- [ ] "Other..." — show `NSAlert` with `NSTextField`, use entered text as reason, then show duration submenu or picker
-- [ ] Run `swift build` — must compile before next task
+- [x] "Open Configuration" — open config.yaml in default editor via `NSWorkspace.shared.open(URL)`
+- [x] Watch config file for changes (`DispatchSource.makeFileSystemObjectSource`) and reload automatically via `ConfigManager.reload()`
+- [x] "Other..." — show `NSAlert` with `NSTextField`, use entered text as reason, then show duration submenu or picker
+- [x] Run `swift build` — must compile before next task
 
 ### Task 13: Build and bundle script
 - [ ] Create `scripts/build.sh` — runs `swift build -c release`, creates `.app` bundle structure:
