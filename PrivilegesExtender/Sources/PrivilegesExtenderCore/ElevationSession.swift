@@ -127,4 +127,21 @@ public final class ElevationSession {
         }
         return startTime
     }
+
+    // MARK: - Formatting
+
+    /// Formats a remaining-time interval (in seconds) as a compact string for display.
+    /// Examples: "27m", "1h 5m", "2h", "0m".
+    public static func formatRemainingTime(_ seconds: TimeInterval) -> String {
+        let totalMinutes = Int(seconds) / 60
+        if totalMinutes >= 60 {
+            let hours = totalMinutes / 60
+            let mins = totalMinutes % 60
+            if mins == 0 {
+                return "\(hours)h"
+            }
+            return "\(hours)h \(mins)m"
+        }
+        return "\(totalMinutes)m"
+    }
 }

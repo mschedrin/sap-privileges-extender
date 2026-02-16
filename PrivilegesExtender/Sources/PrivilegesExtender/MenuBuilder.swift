@@ -134,16 +134,7 @@ final class MenuBuilder: NSObject {
     }
 
     private func formatRemainingTime(_ seconds: TimeInterval) -> String {
-        let totalMinutes = Int(seconds) / 60
-        if totalMinutes >= 60 {
-            let hours = totalMinutes / 60
-            let mins = totalMinutes % 60
-            if mins == 0 {
-                return "\(hours)h"
-            }
-            return "\(hours)h \(mins)m"
-        }
-        return "\(totalMinutes)m"
+        ElevationSession.formatRemainingTime(seconds)
     }
 
     // MARK: - Elevate Submenu

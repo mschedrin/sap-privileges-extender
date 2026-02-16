@@ -215,11 +215,11 @@ log_file: "~/Library/Logs/privileges-extender.log"
 - [x] Run `swift build` — must compile before next task
 
 ### Task 7: Status bar icon states
-- [ ] Define icon variants: `lock.shield` (standard), `lock.shield.fill` (elevated) — SF Symbols via `NSImage(systemSymbolName:)`
-- [ ] Update `StatusBarController` to switch icon based on `ElevationSession.state`
-- [ ] Optionally show remaining time as text next to icon (e.g., "27m") or in the status menu item
-- [ ] Update icon on timer ticks and on elevation/revoke actions
-- [ ] Run `swift build` — must compile before next task
+- [x] Define icon variants: `lock.shield` (standard), `lock.shield.fill` (elevated) — SF Symbols via `NSImage(systemSymbolName:)`
+- [x] Update `StatusBarController` to switch icon based on `ElevationSession.state`
+- [x] Optionally show remaining time as text next to icon (e.g., "27m") or in the status menu item
+- [x] Update icon on timer ticks and on elevation/revoke actions
+- [x] Run `swift build` — must compile before next task
 
 ### Task 8: Notification dismissal via AXUIElement
 - [ ] Create `Sources/PrivilegesExtender/NotificationDismisser.swift`

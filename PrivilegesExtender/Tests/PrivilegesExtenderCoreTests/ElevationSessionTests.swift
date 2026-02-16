@@ -313,4 +313,28 @@ final class ElevationSessionTests: XCTestCase {
 
         XCTAssertFalse(session.shouldReElevate(now: fixedNow.addingTimeInterval(31 * 60)))
     }
+
+    // MARK: - Format Remaining Time
+
+    func testFormatRemainingTimeMinutesOnly() {
+        XCTAssertEqual(ElevationSession.formatRemainingTime(27 * 60), "27m")
+        XCTAssertEqual(ElevationSession.formatRemainingTime(1 * 60), "1m")
+        XCTAssertEqual(ElevationSession.formatRemainingTime(59 * 60), "59m")
+    }
+
+    func testFormatRemainingTimeZeroMinutes() {
+        XCTAssertEqual(ElevationSession.formatRemainingTime(0), "0m")
+        XCTAssertEqual(ElevationSession.formatRemainingTime(30), "0m") // less than 1 minute
+    }
+
+    func testFormatRemainingTimeHoursAndMinutes() {
+        XCTAssertEqual(ElevationSession.formatRemainingTime(65 * 60), "1h 5m")
+        XCTAssertEqual(ElevationSession.formatRemainingTime(150 * 60), "2h 30m")
+    }
+
+    func testFormatRemainingTimeExactHours() {
+        XCTAssertEqual(ElevationSession.formatRemainingTime(60 * 60), "1h")
+        XCTAssertEqual(ElevationSession.formatRemainingTime(120 * 60), "2h")
+        XCTAssertEqual(ElevationSession.formatRemainingTime(24 * 60 * 60), "24h")
+    }
 }

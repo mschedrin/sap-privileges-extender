@@ -1,6 +1,14 @@
 import AppKit
 import PrivilegesExtenderCore
 
+/// SF Symbol names for the status bar icon.
+enum StatusBarIcon {
+    /// Outline shield — displayed when the user has standard (non-elevated) privileges.
+    static let standard = "lock.shield"
+    /// Filled shield — displayed when privileges are actively elevated.
+    static let elevated = "lock.shield.fill"
+}
+
 /// Owns the NSStatusItem and manages the menu bar icon and menu via MenuBuilder.
 class StatusBarController {
     private let statusItem: NSStatusItem
@@ -23,13 +31,8 @@ class StatusBarController {
 
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 
-        if let button = statusItem.button {
-            button.image = NSImage(
-                systemSymbolName: "lock.shield",
-                accessibilityDescription: "Privileges Extender"
-            )
-        }
-
+        // Set initial icon based on current session state
+        updateIcon()
         refreshMenu()
     }
 
@@ -52,27 +55,46 @@ class StatusBarController {
         refreshMenu()
     }
 
-    /// Updates the status bar icon based on the current session state.
+    /// Updates the status bar icon and optional time label based on the current session state.
     func updateIcon() {
+        guard let button = statusItem.button else { return }
+
         let symbolName: String
+        let timeText: String?
+
         switch session.state {
         case .active:
-            symbolName = "lock.shield.fill"
+            symbolName = StatusBarIcon.elevated
+            timeText = formattedRemainingTime()
         case .idle, .expired:
-            symbolName = "lock.shield"
+            symbolName = StatusBarIcon.standard
+            timeText = nil
         }
 
-        if let button = statusItem.button {
-            button.image = NSImage(
-                systemSymbolName: symbolName,
-                accessibilityDescription: "Privileges Extender"
-            )
-        }
+        button.image = NSImage(
+            systemSymbolName: symbolName,
+            accessibilityDescription: "Privileges Extender"
+        )
+
+        // Show remaining time as compact text next to the icon (e.g., "27m", "1h 5m")
+        button.title = timeText ?? ""
+        // Add small spacing between image and title when title is present
+        button.imagePosition = timeText != nil ? .imageLeading : .imageOnly
     }
 
     /// Refreshes both the icon and the menu (call after state changes).
     func refresh() {
         updateIcon()
         refreshMenu()
+    }
+
+    // MARK: - Private Helpers
+
+    /// Returns a compact formatted string of the remaining elevation time, or nil for special durations.
+    private func formattedRemainingTime() -> String? {
+        guard let remaining = session.remainingTime() else {
+            return nil
+        }
+        return ElevationSession.formatRemainingTime(remaining)
     }
 }
