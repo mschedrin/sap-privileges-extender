@@ -9,6 +9,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var logger: Logger?
     private var reElevationTimer: Timer?
     private var notificationDismisser: NotificationDismisser?
+    private var loginItemManager: LoginItemManager?
 
     /// How often the timer ticks to check session state (seconds).
     /// Short interval so the UI countdown stays responsive.
@@ -40,6 +41,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             self.notificationDismisser = NotificationDismisser(logger: logger)
         }
 
+        // Set up login item manager
+        let loginItemManager = LoginItemManager()
+        self.loginItemManager = loginItemManager
+
         // Set up menu callbacks
         let callbacks = MenuCallbacks(
             onElevate: { [weak self] reason, duration in
@@ -54,8 +59,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             onOpenConfiguration: {
                 // Placeholder — wired in Task 12
             },
-            onToggleLoginItem: {
-                // Placeholder — wired in Task 9
+            onToggleLoginItem: { [weak self] in
+                self?.loginItemManager?.toggle()
+                self?.statusBarController?.refresh()
             },
             onCheckPermissions: {
                 // Placeholder — wired in Task 10
@@ -66,7 +72,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         statusBarController = StatusBarController(
             config: config,
             session: session,
-            callbacks: callbacks
+            callbacks: callbacks,
+            isLoginItemEnabled: { [weak loginItemManager] in
+                loginItemManager?.isEnabled() ?? false
+            }
         )
     }
 

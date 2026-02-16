@@ -233,11 +233,11 @@ log_file: "~/Library/Logs/privileges-extender.log"
 - [x] Run `swift build` — must compile before next task
 
 ### Task 9: Login item management
-- [ ] Create `Sources/PrivilegesExtender/LoginItemManager.swift`
-- [ ] Implement using `SMAppService.mainApp` (macOS 13+) for login item registration
-- [ ] Implement `isEnabled() -> Bool` and `toggle()` methods
-- [ ] Wire to "Start at Login" menu item — show checkmark when enabled
-- [ ] Run `swift build` — must compile before next task
+- [x] Create `Sources/PrivilegesExtender/LoginItemManager.swift`
+- [x] Implement using `SMAppService.mainApp` (macOS 13+) for login item registration
+- [x] Implement `isEnabled() -> Bool` and `toggle()` methods
+- [x] Wire to "Start at Login" menu item — show checkmark when enabled
+- [x] Run `swift build` — must compile before next task
 
 ### Task 10: Permission checker
 - [ ] Create `Sources/PrivilegesExtender/PermissionChecker.swift`
