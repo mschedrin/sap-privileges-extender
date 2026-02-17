@@ -1,6 +1,6 @@
 # Swift/macOS development image with Swift compiler, Go toolchain, and ralphex
 # Tailored for macOS/Swift app development (PrivilegesExtender and similar projects)
-FROM ghcr.io/umputun/ralphex:v0.10.1 AS ralphex
+FROM ghcr.io/umputun/ralphex:latest AS ralphex
 
 FROM swift:6.2.3-noble
 
