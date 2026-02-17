@@ -33,6 +33,21 @@ public struct AppConfig: Codable, Equatable, Sendable {
         case dismissNotifications = "dismiss_notifications"
         case logFile = "log_file"
     }
+
+    /// Custom decoder that allows partial YAML configs by falling back to defaults for missing keys.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let defaults = AppConfig()
+        reasons = try container.decodeIfPresent([String].self, forKey: .reasons) ?? defaults.reasons
+        durations = try container.decodeIfPresent([DurationOption].self, forKey: .durations) ?? defaults.durations
+        privilegesCLIPath = try container.decodeIfPresent(String.self, forKey: .privilegesCLIPath)
+            ?? defaults.privilegesCLIPath
+        reElevationIntervalSeconds = try container.decodeIfPresent(Int.self, forKey: .reElevationIntervalSeconds)
+            ?? defaults.reElevationIntervalSeconds
+        dismissNotifications = try container.decodeIfPresent(Bool.self, forKey: .dismissNotifications)
+            ?? defaults.dismissNotifications
+        logFile = try container.decodeIfPresent(String.self, forKey: .logFile) ?? defaults.logFile
+    }
 }
 
 /// A duration option for privilege elevation.

@@ -40,12 +40,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         )
 
-        // Check if already elevated (e.g. elevated outside the app or app relaunched)
+        // Check if already elevated (e.g. elevated outside the app or app relaunched).
+        // Use indefinite duration since we can't know the original intent. The user can
+        // always revoke manually or start a new session with their desired duration.
         if let privilegeManager = privilegeManager {
             let status = privilegeManager.checkStatus()
             if status == .elevated {
-                logger?.log("Already elevated on launch, tracking existing session")
-                let defaultDuration = config.durations.first ?? DurationOption(label: "Unknown", minutes: 30)
+                logger?.log("Already elevated on launch, tracking existing session as indefinite")
+                let defaultDuration = DurationOption(label: "Indefinitely", minutes: 0)
                 session.start(reason: "Pre-existing elevation", duration: defaultDuration)
                 startReElevationTimer()
                 statusBarController?.refresh()
@@ -205,14 +207,39 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         guard let session = session, let privilegeManager = privilegeManager else { return }
         let config = cachedConfig
 
-        // Validate actual privilege status against session state
+        // Validate actual privilege status against session state.
+        // If privileges were lost (e.g. MDM timeout during sleep), try to re-elevate
+        // rather than assuming the user revoked externally.
         let actualStatus = privilegeManager.checkStatus()
         if case .active = session.state, actualStatus == .standard {
-            logger?.log("Privileges revoked externally, stopping session")
-            session.stop()
-            stopReElevationTimer()
-            statusBarController?.refresh()
-            return
+            if session.isExpired() {
+                logger?.log("Session expired and privileges lost, stopping session")
+                session.stop()
+                stopReElevationTimer()
+                statusBarController?.refresh()
+                return
+            }
+            if let reason = session.activeReason {
+                logger?.log("Privileges lost (MDM timeout?), re-elevating")
+                let result = privilegeManager.elevate(reason: reason)
+                switch result {
+                case .success:
+                    session.recordReElevation()
+                    logger?.log("Re-elevation after privilege loss successful")
+                case .failure(let error):
+                    logger?.log("Re-elevation after privilege loss failed: \(error), stopping session")
+                    session.stop()
+                    stopReElevationTimer()
+                    statusBarController?.refresh()
+                    return
+                }
+            } else {
+                logger?.log("Privileges lost with no active reason, stopping session")
+                session.stop()
+                stopReElevationTimer()
+                statusBarController?.refresh()
+                return
+            }
         }
 
         // Check if the session has expired

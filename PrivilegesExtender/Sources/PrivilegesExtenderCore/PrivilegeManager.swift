@@ -85,6 +85,8 @@ public final class PrivilegeManager: Sendable {
     private let cliPath: String
     private let executor: CLIExecutor
     private let logger: Logger?
+    /// Tracks the last status to avoid logging repeated unchanged status checks.
+    nonisolated(unsafe) private var lastLoggedStatus: PrivilegeStatus?
 
     public init(cliPath: String, executor: CLIExecutor = ProcessCLIExecutor(), logger: Logger? = nil) {
         self.cliPath = cliPath
@@ -97,7 +99,10 @@ public final class PrivilegeManager: Sendable {
         do {
             let result = try executor.run(executablePath: cliPath, arguments: ["--status"])
             let status = PrivilegeManager.parseStatus(from: result.output)
-            logger?.log("Status check: \(status.rawValue)")
+            if status != lastLoggedStatus {
+                logger?.log("Status changed: \(status.rawValue)")
+                lastLoggedStatus = status
+            }
             return status
         } catch {
             logger?.log("Status check failed: \(error)")
@@ -173,7 +178,7 @@ public final class PrivilegeManager: Sendable {
         // Check for negation patterns before positive "admin" match
         if lowered.contains("user is not") || lowered.contains("standard") {
             return .standard
-        } else if lowered.contains("admin") {
+        } else if lowered.contains("has admin") || lowered.contains("is admin") || lowered.contains("admin privileges") {
             return .elevated
         }
         return .unknown

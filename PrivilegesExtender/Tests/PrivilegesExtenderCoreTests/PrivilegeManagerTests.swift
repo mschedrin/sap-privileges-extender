@@ -206,7 +206,7 @@ final class PrivilegeManagerTests: XCTestCase {
 
         let logContent = logger.readAll()
         XCTAssertNotNil(logContent)
-        XCTAssertTrue(logContent!.contains("Status check: elevated"))
+        XCTAssertTrue(logContent!.contains("Status changed: elevated"))
 
         try? FileManager.default.removeItem(atPath: logPath)
     }
