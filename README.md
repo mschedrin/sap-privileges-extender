@@ -1,89 +1,206 @@
 # Privileges Extender
 
-A macOS background service that automatically keeps SAP Privileges admin rights elevated and suppresses related notifications.
+A native macOS menu bar app that keeps SAP Privileges admin rights elevated and suppresses related notifications.
 
 ## Why
 
-SAP Privileges v2.5.0 with MDM-enforced `ExpirationIntervalMax: 30` revokes admin rights after 30 minutes and shows notification banners. This tool re-elevates every 15 minutes and dismisses those notifications.
+SAP Privileges v2.5.0 with MDM-enforced `ExpirationIntervalMax: 30` revokes admin rights after 30 minutes and shows notification banners. This app re-elevates privileges automatically before the timeout and dismisses those notifications.
 
 ## How it works
 
-A launchd user agent runs a script every 15 minutes that:
+The app lives in your menu bar with a shield icon that shows your current privilege status:
 
-1. Re-elevates admin privileges via `PrivilegesCLI --add`
-2. Launches a helper app (`DismissPrivilegesNotifications.app`) that finds and closes any "Privileges" notification banners via the Accessibility API
-3. Logs everything to `~/Library/Logs/privileges-extender.log`
+- Shield outline = standard user
+- Filled shield = elevated (admin)
 
-The helper app is a small Swift binary that loads an AppleScript from `~/.local/bin/dismiss-notifications.scpt` at runtime. This means the AppleScript can be updated without recompiling the app or re-granting permissions.
+From the menu bar you can:
 
-On install, notification flags for the Privileges agent are also cleared at the user level (best-effort — MDM may re-enforce at Jamf check-in, so the AppleScript dismissal is the reliable fallback).
+- Elevate privileges with a predefined reason and chosen duration
+- Enter a custom reason via "Other..."
+- Revoke privileges manually
+- View logs, edit configuration, toggle start-at-login
+
+When elevated, a background timer re-invokes PrivilegesCLI every 25 minutes (configurable) to keep privileges alive for your chosen duration. Notifications from SAP Privileges are automatically dismissed via the Accessibility API.
+
+## Menu structure
+
+```
+[Shield Icon]
+├── ● Elevated — Update software (27 min remaining)
+├── ─────────────────────
+├── Elevate Now ▸
+│   ├── Update software ▸
+│   │   ├── 30 minutes
+│   │   ├── 1 hour
+│   │   ├── 2 hours
+│   │   ├── 8 hours
+│   │   ├── 24 hours
+│   │   ├── Until logout
+│   │   └── Indefinitely
+│   ├── Installing software ▸
+│   │   └── (same durations)
+│   ├── ...other reasons...
+│   ├── ─────────────────────
+│   └── Other...               ← text input dialog
+├── Revoke Privileges
+├── ─────────────────────
+├── View Logs
+├── Open Configuration
+├── ─────────────────────
+├── ☑ Start at Login
+├── Check Permissions
+├── ─────────────────────
+└── Quit
+```
 
 ## Install
 
+### Prerequisites
+
+- macOS 13+ (Ventura or later)
+- SAP Privileges.app installed at `/Applications/Privileges.app`
+- Xcode Command Line Tools (`xcode-select --install`)
+
+### Build and install
+
 ```bash
-./install.sh
+cd PrivilegesExtender
+
+# Build the .app bundle
+./scripts/build.sh
+
+# Install to ~/Applications/
+./scripts/install.sh
 ```
 
-Then grant Accessibility permission to the helper app:
+### Grant permissions
 
-1. **System Settings > Privacy & Security > Accessibility**
-2. Click `+`, press `Cmd+Shift+G`, type `~/Applications/`
-3. Select `DismissPrivilegesNotifications.app` and enable the toggle
+1. Open **System Settings > Privacy & Security > Accessibility**
+2. Enable **PrivilegesExtender**
+
+### Launch
+
+```bash
+open ~/Applications/PrivilegesExtender.app
+```
+
+To start automatically at login, enable "Start at Login" from the menu bar icon.
 
 ## Uninstall
 
 ```bash
-./uninstall.sh
+cd PrivilegesExtender
+
+# Remove app (keep config and logs)
+./scripts/uninstall.sh
+
+# Remove everything (app, config, and logs)
+./scripts/uninstall.sh --all
 ```
 
-Removes the agent, scripts, helper app, log files, and restores notification settings.
+After uninstalling, remove the app from:
+- System Settings > Privacy & Security > Accessibility
+- System Settings > General > Login Items
 
-## Verify
+## Configuration
+
+Configuration is stored at `~/Library/Application Support/PrivilegesExtender/config.yaml`.
+
+Edit from the app via **Open Configuration** in the menu bar, or edit the file directly. Changes are detected and reloaded automatically.
+
+```yaml
+reasons:
+  - Update software
+  - Installing software
+  - Uninstalling software
+  - Run script
+  - Use software which requires elevation
+  - Troubleshooting
+
+durations:
+  - label: "30 minutes"
+    minutes: 30
+  - label: "1 hour"
+    minutes: 60
+  - label: "2 hours"
+    minutes: 120
+  - label: "8 hours"
+    minutes: 480
+  - label: "24 hours"
+    minutes: 1440
+  - label: "Until logout"
+    minutes: -1      # re-elevate until app quits
+  - label: "Indefinitely"
+    minutes: 0        # re-elevate forever
+
+privileges_cli_path: "/Applications/Privileges.app/Contents/MacOS/PrivilegesCLI"
+re_elevation_interval_seconds: 1500   # 25 min — re-elevate before 30-min MDM timeout
+dismiss_notifications: true
+log_file: "~/Library/Logs/privileges-extender.log"
+```
+
+### Special durations
+
+- **Until logout** (minutes: -1) — keeps re-elevating until you quit the app
+- **Indefinitely** (minutes: 0) — keeps re-elevating forever, even across app restarts
+
+## Logs
+
+Logs are written to `~/Library/Logs/privileges-extender.log`.
+
+View logs from the app via **View Logs** in the menu bar, or:
 
 ```bash
-# Check agent is loaded
-launchctl list | grep privileges-extender
-
-# Watch the log
 tail -f ~/Library/Logs/privileges-extender.log
 ```
 
-## Manual control
+## Architecture
 
-```bash
-# Stop the agent
-launchctl unload ~/Library/LaunchAgents/com.user.privileges-extender.plist
+The project uses a two-target Swift Package Manager structure:
 
-# Start the agent
-launchctl load ~/Library/LaunchAgents/com.user.privileges-extender.plist
+- **PrivilegesExtenderCore** (library) — config models, YAML parsing, privilege status parsing, elevation session state machine, duration/timer logic, logging. Uses Foundation + Yams. Cross-platform (macOS and Linux).
+- **PrivilegesExtender** (executable) — AppKit menu bar UI, AXUIElement notification dismissal, SMAppService login items, SwiftUI log viewer. macOS only.
 
-# Trigger a run immediately (without waiting for the 15-min interval)
-launchctl start com.user.privileges-extender
 ```
-
-## Test manually
-
-```bash
-# Run the script directly
-bash ./privileges-extend.sh
-
-# Check the log
-cat ~/Library/Logs/privileges-extender.log
+PrivilegesExtender/
+├── Package.swift
+├── Sources/
+│   ├── PrivilegesExtenderCore/     # Cross-platform library
+│   │   ├── Config.swift            # AppConfig, DurationOption models
+│   │   ├── ConfigManager.swift     # YAML loading, file watching, reload
+│   │   ├── ElevationSession.swift  # State machine: idle/active/expired
+│   │   ├── Logger.swift            # File logger
+│   │   └── PrivilegeManager.swift  # PrivilegesCLI wrapper
+│   └── PrivilegesExtender/         # macOS menu bar app
+│       ├── main.swift              # NSApplication setup
+│       ├── AppDelegate.swift       # App lifecycle, timer management
+│       ├── StatusBarController.swift
+│       ├── MenuBuilder.swift       # Full menu from config
+│       ├── NotificationDismisser.swift  # AXUIElement-based dismissal
+│       ├── PermissionChecker.swift
+│       ├── LoginItemManager.swift  # SMAppService login items
+│       └── LogViewerWindow.swift   # SwiftUI log viewer
+├── Resources/
+│   └── default-config.yaml
+├── scripts/
+│   ├── build.sh                    # Build .app bundle
+│   ├── install.sh                  # Install to ~/Applications/
+│   └── uninstall.sh                # Remove app
+└── Tests/
+    └── PrivilegesExtenderCoreTests/
 ```
-
-## Files
-
-| File | Installed to | Description |
-|------|-------------|-------------|
-| `privileges-extend.sh` | `~/.local/bin/` | Main script (re-elevate + dismiss notifications) |
-| `helper/dismiss-notifications.applescript` | `~/.local/bin/dismiss-notifications.scpt` | AppleScript for finding and closing notification banners |
-| `helper/DismissNotifications.swift` | `~/Applications/DismissPrivilegesNotifications.app` | Swift helper app that runs the AppleScript with Accessibility permission |
-| `com.user.privileges-extender.plist` | `~/Library/LaunchAgents/` | LaunchAgent plist (runs every 15 min) |
-| `install.sh` | — | Installer |
-| `uninstall.sh` | — | Uninstaller |
 
 ## Requirements
 
-- macOS with SAP Privileges.app installed
-- Xcode Command Line Tools (for `swiftc`, used during install)
-- Accessibility permission for `~/Applications/DismissPrivilegesNotifications.app`
+- macOS 13+ (Ventura or later)
+- SAP Privileges.app installed
+- Accessibility permission for notification dismissal
+
+## Legacy PoC
+
+The original proof-of-concept (shell script + LaunchAgent + helper app) files remain in the repository root for reference:
+
+- `privileges-extend.sh` — main script
+- `com.user.privileges-extender.plist` — LaunchAgent plist
+- `helper/` — Swift helper app and AppleScript
+- `install.sh` / `uninstall.sh` — old installers

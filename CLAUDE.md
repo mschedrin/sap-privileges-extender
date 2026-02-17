@@ -1,40 +1,71 @@
 # Privileges Extender
 
-A macOS background service that keeps SAP Privileges admin rights elevated and suppresses related notifications.
+A native macOS menu bar app that keeps SAP Privileges admin rights elevated and suppresses related notifications.
 
 ## Project structure
-- `privileges-extend.sh` — Main script (re-elevates privileges, launches helper app to dismiss notifications)
+
+### Menu bar app (PrivilegesExtender/)
+- `Package.swift` — SPM manifest: two targets + Yams dependency
+- `Sources/PrivilegesExtenderCore/` — Cross-platform library (Foundation + Yams)
+  - `Config.swift` — `AppConfig`, `DurationOption` Codable models
+  - `ConfigManager.swift` — YAML loading, default config creation, `reload()` method
+  - `ElevationSession.swift` — State machine: `.idle`, `.active`, `.expired`; tracks reason, duration, re-elevation timing
+  - `Logger.swift` — Simple file logger (timestamped append)
+  - `PrivilegeManager.swift` — Wraps `Foundation.Process` calls to PrivilegesCLI (`--status`, `--add`, `--remove`)
+- `Sources/PrivilegesExtender/` — macOS executable (AppKit + SwiftUI)
+  - `main.swift` — `NSApplication` setup with `AppDelegate`
+  - `AppDelegate.swift` — App lifecycle, re-elevation timer, state coordination
+  - `StatusBarController.swift` — `NSStatusItem` with SF Symbol icons (`lock.shield` / `lock.shield.fill`)
+  - `MenuBuilder.swift` — Builds full `NSMenu` from `AppConfig` (reasons, durations, actions)
+  - `NotificationDismisser.swift` — Dismisses Privileges notifications via `AXUIElement` API
+  - `PermissionChecker.swift` — Checks Accessibility permission and PrivilegesCLI availability
+  - `LoginItemManager.swift` — `SMAppService.mainApp` login item registration (macOS 13+)
+  - `LogViewerWindow.swift` — SwiftUI log viewer hosted in `NSWindow`
+- `Resources/default-config.yaml` — Default configuration file
+- `scripts/build.sh` — Builds .app bundle with Info.plist and ad-hoc code signing
+- `scripts/install.sh` — Installs to ~/Applications/, creates config directory
+- `scripts/uninstall.sh` — Removes app, optionally config and logs
+- `Tests/PrivilegesExtenderCoreTests/` — Unit tests for Core library
+
+### Legacy PoC (repository root)
+- `privileges-extend.sh` — Original main script (re-elevates privileges, launches helper app)
 - `com.user.privileges-extender.plist` — LaunchAgent plist (runs every 15 min)
-- `helper/DismissNotifications.swift` — Swift helper app source (compiled to .app during install)
-- `helper/dismiss-notifications.applescript` — AppleScript for notification dismissal (loaded at runtime by helper app)
-- `install.sh` — Installs the agent, builds helper app, configures notifications
-- `uninstall.sh` — Removes everything cleanly
+- `helper/DismissNotifications.swift` — Swift helper app source
+- `helper/dismiss-notifications.applescript` — AppleScript for notification dismissal
+- `install.sh` / `uninstall.sh` — Old installers for the PoC
+
+## Two-target architecture
+- **PrivilegesExtenderCore** (library) — config models, YAML parsing, privilege status, elevation session, logging. Uses only Foundation + Yams. Compiles on macOS and Linux.
+- **PrivilegesExtender** (executable) — AppKit menu bar UI, AXUIElement notification dismissal, SMAppService login items, SwiftUI log viewer. macOS only. Conditionally included in Package.swift via `#if os(macOS)`.
+- **PrivilegesExtenderCoreTests** — Unit tests for Core. Runs on both macOS and Linux.
 
 ## Key paths
 - SAP Privileges CLI: `/Applications/Privileges.app/Contents/MacOS/PrivilegesCLI`
+- App bundle ID: `com.user.privileges-extender`
 - Privileges Agent bundle ID: `corp.sap.privileges.agent`
 - Privileges main bundle ID: `corp.sap.privileges`
-- Notification prefs: `~/Library/Preferences/com.apple.ncprefs.plist`
-- MDM managed prefs: `/Library/Managed Preferences/com.apple.notificationsettings.plist`
-- Script install location: `~/.local/bin/privileges-extend.sh`
-- AppleScript install location: `~/.local/bin/dismiss-notifications.scpt`
-- Helper app install location: `~/Applications/DismissPrivilegesNotifications.app`
-- LaunchAgent location: `~/Library/LaunchAgents/com.user.privileges-extender.plist`
+- Config file: `~/Library/Application Support/PrivilegesExtender/config.yaml`
+- App install location: `~/Applications/PrivilegesExtender.app`
 - Log file: `~/Library/Logs/privileges-extender.log`
-- Dismiss log: `~/Library/Logs/privileges-extender-dismiss.log`
 
 ## Environment
-- macOS 26.2 (Tahoe)
+- macOS 13+ (Ventura or later) required
 - SAP Privileges v2.5.0 (bundle: corp.sap.privileges)
 - Admin timeout: 30 minutes (MDM-enforced via ExpirationIntervalMax)
+- Re-elevation interval: 25 minutes (default, configurable)
 - Notifications: MDM-managed (AlertType: 2 = Banner, NotificationsEnabled: true)
 
+## Build and test
+- Build core library: `cd PrivilegesExtender && swift build --target PrivilegesExtenderCore`
+- Run tests: `cd PrivilegesExtender && swift test`
+- Build .app bundle: `cd PrivilegesExtender && ./scripts/build.sh`
+- Tests run on both macOS and Linux (Core target only on Linux)
+
 ## Technical notes
-- MDM enforces notification settings, so user-level ncprefs.plist changes may be re-enforced at Jamf check-in
-- Notification flags in ncprefs.plist: entry at index 162, flags bitmask controls alert style
-- Raw `osascript` cannot get Accessibility permission when run from launchd (no app identity)
-- Solution: a Swift helper app (`DismissPrivilegesNotifications.app`) that runs AppleScript via NSAppleScript — it has its own bundle ID (`com.user.dismiss-privileges-notifications`) and can be granted Accessibility permission
-- The helper app loads the AppleScript from an external file (`~/.local/bin/dismiss-notifications.scpt`) at runtime, so the script can be updated without recompiling the app or re-granting permissions
-- The helper app must be in `~/Applications/` (not `~/.local/bin/`) for macOS to properly track its Accessibility permission
-- NotificationCenter UI hierarchy (macOS 26.2): `window "Notification Center" > group 1 > group 1 > scroll area 1 > groups` — each notification group has static texts (heading, body) and actions (press, Show Details, Close)
-- PrivilegesAgent is an LSUIElement (background agent) with AppleScript support via .sdef
+- MDM enforces notification settings; user-level ncprefs.plist changes may be re-enforced at Jamf check-in
+- App uses `AXUIElement` API for notification dismissal (not AppleScript) — requires Accessibility permission
+- NotificationCenter UI hierarchy (macOS 26.2): `window "Notification Center" > group 1 > group 1 > scroll area 1 > groups`
+- LSUIElement: true (background app, no Dock icon)
+- Login items use `SMAppService.mainApp` (macOS 13+)
+- Config file is watched via `DispatchSource.makeFileSystemObjectSource` and reloaded automatically
+- Special duration values: -1 = until logout, 0 = indefinitely

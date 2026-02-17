@@ -293,8 +293,8 @@ log_file: "~/Library/Logs/privileges-extender.log"
 - [x] Run `swiftlint` — all issues must be fixed
 
 ### Task 16: [Final] Update documentation
-- [ ] Update `README.md` with new app usage, installation, and configuration docs
-- [ ] Update `CLAUDE.md` with new project structure, two-target architecture, and technical details
+- [x] Update `README.md` with new app usage, installation, and configuration docs
+- [x] Update `CLAUDE.md` with new project structure, two-target architecture, and technical details
 
 *Note: ralphex automatically moves completed plans to `docs/plans/completed/`*
 
