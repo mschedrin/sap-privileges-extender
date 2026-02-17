@@ -48,7 +48,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let logger = Logger(filePath: logPath)
         self.logger = logger
 
-        self.privilegeManager = PrivilegeManager(cliPath: config.privilegesCLIPath, logger: logger)
+        let cliPath = (config.privilegesCLIPath as NSString).expandingTildeInPath
+        self.privilegeManager = PrivilegeManager(cliPath: cliPath, logger: logger)
         self.session = ElevationSession(
             reElevationIntervalSeconds: TimeInterval(config.reElevationIntervalSeconds)
         )

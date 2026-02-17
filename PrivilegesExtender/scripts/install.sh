@@ -7,7 +7,7 @@
 #
 # The script:
 #   1. Copies the .app bundle to ~/Applications/
-#   2. Creates the config directory (~Library/Application Support/PrivilegesExtender/)
+#   2. Creates the config directory (~/Library/Application Support/PrivilegesExtender/)
 #   3. Copies default config if none exists
 #   4. Reminds user to grant Accessibility permission
 

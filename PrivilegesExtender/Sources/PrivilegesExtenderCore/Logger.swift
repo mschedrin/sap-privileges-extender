@@ -23,8 +23,10 @@ public final class Logger: @unchecked Sendable {
 
     /// Reads the entire log file contents.
     public func readAll() -> String? {
-        guard fileManager.fileExists(atPath: filePath) else { return nil }
-        return try? String(contentsOfFile: filePath, encoding: .utf8)
+        writeQueue.sync {
+            guard fileManager.fileExists(atPath: filePath) else { return nil }
+            return try? String(contentsOfFile: filePath, encoding: .utf8)
+        }
     }
 
     /// Clears the log file.

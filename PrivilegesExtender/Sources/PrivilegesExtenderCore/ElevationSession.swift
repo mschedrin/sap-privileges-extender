@@ -18,7 +18,7 @@ public final class ElevationSession {
     public private(set) var lastElevationTime: Date?
 
     public init(reElevationIntervalSeconds: TimeInterval = 1500) {
-        self.reElevationIntervalSeconds = reElevationIntervalSeconds
+        self.reElevationIntervalSeconds = max(60, reElevationIntervalSeconds)
     }
 
     // MARK: - Session Lifecycle
