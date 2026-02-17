@@ -203,7 +203,7 @@ final class MenuBuilder: NSObject {
         guard response == .alertFirstButtonReturn else { return }
 
         let reason = textField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !reason.isEmpty else { return }
+        guard !reason.isEmpty, !reason.hasPrefix("-") else { return }
 
         showDurationPicker(for: reason)
     }

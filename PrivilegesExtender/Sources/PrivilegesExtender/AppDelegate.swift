@@ -38,6 +38,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         )
 
+        // Check if already elevated (e.g. elevated outside the app or app relaunched)
+        if let privilegeManager = privilegeManager {
+            let status = privilegeManager.checkStatus()
+            if status == .elevated {
+                logger?.log("Already elevated on launch, tracking existing session")
+                let defaultDuration = config.durations.first ?? DurationOption(label: "Unknown", minutes: 30)
+                session.start(reason: "Pre-existing elevation", duration: defaultDuration)
+                startReElevationTimer()
+                statusBarController?.refresh()
+            }
+        }
+
         startConfigFileWatcher()
     }
 
@@ -184,6 +196,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func timerTick() {
         guard let session = session, let privilegeManager = privilegeManager else { return }
         let config = cachedConfig
+
+        // Validate actual privilege status against session state
+        let actualStatus = privilegeManager.checkStatus()
+        if case .active = session.state, actualStatus == .standard {
+            logger?.log("Privileges revoked externally, stopping session")
+            session.stop()
+            stopReElevationTimer()
+            statusBarController?.refresh()
+            return
+        }
 
         // Check if the session has expired (transitions to .expired state)
         if session.checkExpiry() {
@@ -334,11 +356,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
 
-            // Update privilege manager if CLI path changed
+            // Update privilege manager and permission checker if CLI path changed
             let newCLIPath = (newConfig.privilegesCLIPath as NSString).expandingTildeInPath
             let oldCLIPath = oldConfig.map { ($0.privilegesCLIPath as NSString).expandingTildeInPath }
             if newCLIPath != oldCLIPath {
                 privilegeManager = PrivilegeManager(cliPath: newCLIPath, logger: logger)
+                permissionChecker = PermissionChecker(cliPath: newConfig.privilegesCLIPath)
             }
 
             // Update re-elevation interval if changed

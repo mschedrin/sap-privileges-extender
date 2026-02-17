@@ -33,7 +33,7 @@ final class LoginItemManager {
             } catch {
                 logger?.log("Login item register failed: \(error)")
             }
-            completion?()
+            DispatchQueue.main.async { completion?() }
         }
     }
 }
