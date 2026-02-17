@@ -107,11 +107,19 @@ public final class PrivilegeManager: Sendable {
 
     /// Elevates privileges with the given reason.
     public func elevate(reason: String) -> Result<Void, PrivilegeError> {
-        logger?.log("Elevating privileges with reason: \(reason)")
+        // Validate reason to prevent argument injection via config-sourced strings
+        let trimmed = reason.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, !trimmed.hasPrefix("-") else {
+            let error = PrivilegeError.executionFailed(exitCode: -1, output: "Invalid reason: \(reason)")
+            logger?.log("Elevation rejected: invalid reason string")
+            return .failure(error)
+        }
+
+        logger?.log("Elevating privileges with reason: \(trimmed)")
         do {
             let result = try executor.run(
                 executablePath: cliPath,
-                arguments: ["--add", "--reason", reason]
+                arguments: ["--add", "--reason", trimmed]
             )
             if result.exitCode != 0 {
                 let error = PrivilegeError.executionFailed(

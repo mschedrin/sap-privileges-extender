@@ -15,6 +15,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var cachedConfig: AppConfig?
     private var configFileWatcher: DispatchSourceFileSystemObject?
     private var configFileDescriptor: Int32 = -1
+    private var configFileWatcherRetries: Int = 0
+    private let maxConfigFileWatcherRetries: Int = 30
 
     /// How often the timer ticks to check session state (seconds).
     /// Short interval so the UI countdown stays responsive.
@@ -274,7 +276,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 // MARK: - Config File Watcher
 
 extension AppDelegate {
-    func startConfigFileWatcher(reloadAfterSetup: Bool = false) {
+    private func startConfigFileWatcher(reloadAfterSetup: Bool = false) {
         // Cancel any existing watcher before setting up a new one to avoid
         // leaking file descriptors or crashing from a deallocated resumed DispatchSource.
         stopConfigFileWatcher()
@@ -287,11 +289,18 @@ extension AppDelegate {
         // in-flight save. Pass reloadAfterSetup through so the config is reloaded once the
         // file appears and the watcher is successfully created.
         if !FileManager.default.fileExists(atPath: path) {
+            configFileWatcherRetries += 1
+            if configFileWatcherRetries > maxConfigFileWatcherRetries {
+                logger?.log("Config file not found after \(maxConfigFileWatcherRetries) retries, giving up watcher setup")
+                configFileWatcherRetries = 0
+                return
+            }
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
                 self?.startConfigFileWatcher(reloadAfterSetup: reloadAfterSetup)
             }
             return
         }
+        configFileWatcherRetries = 0
 
         let fileDescriptor = open(path, O_EVTONLY)
         guard fileDescriptor >= 0 else {
@@ -331,7 +340,7 @@ extension AppDelegate {
         }
     }
 
-    func stopConfigFileWatcher() {
+    private func stopConfigFileWatcher() {
         configFileWatcher?.cancel()
         configFileWatcher = nil
     }

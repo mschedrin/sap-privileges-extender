@@ -77,20 +77,36 @@ RUN pip3 install --break-system-packages yamllint && \
     echo "${EXPECTED}  /usr/local/bin/yq" | sha256sum -c - && \
     chmod +x /usr/local/bin/yq
 
-# install Swift development tools (linter + formatter)
+# install Swift development tools (linter + formatter) — pinned versions
 ARG SWIFTLINT_VERSION=0.63.2
+ARG SWIFTLINT_SHA256_AMD64=dd1017cfd20a1457f264590bcb5875a6ee06cd75b9a9d4f77cd43a552499143b
+ARG SWIFTLINT_SHA256_ARM64=104dedff762157f5cff7752f1cc2a289b60f3ea677e72d651c6f3a3287fdd948
 RUN ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/') && \
     wget -qO /tmp/swiftlint.zip "https://github.com/realm/SwiftLint/releases/download/${SWIFTLINT_VERSION}/swiftlint_linux_${ARCH}.zip" && \
+    if [ "$ARCH" = "amd64" ]; then EXPECTED="${SWIFTLINT_SHA256_AMD64}"; else EXPECTED="${SWIFTLINT_SHA256_ARM64}"; fi && \
+    echo "${EXPECTED}  /tmp/swiftlint.zip" | sha256sum -c - && \
     unzip -o /tmp/swiftlint.zip swiftlint -d /tmp && \
     mv /tmp/swiftlint /usr/local/bin/swiftlint && \
     chmod +x /usr/local/bin/swiftlint && \
     rm -f /tmp/swiftlint.zip
 
 ARG SWIFTFORMAT_VERSION=0.59.1
-RUN ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/aarch64/') && \
-    wget -qO /tmp/swiftformat.zip "https://github.com/nicklockwood/SwiftFormat/releases/download/${SWIFTFORMAT_VERSION}/swiftformat_linux_${ARCH}.zip" && \
+ARG SWIFTFORMAT_SHA256_AMD64=150d9693570cf234ec91d8a03ba7165bd36a78335c5e40ed91e4c013a492eb54
+ARG SWIFTFORMAT_SHA256_ARM64=c55cea3543dd8488863d14132fa677db765c8f0ad5a6e6184cf822ca626bb1db
+RUN ARCH=$(uname -m) && \
+    if [ "$ARCH" = "x86_64" ]; then \
+        ZIP_NAME="swiftformat_linux.zip"; \
+        BIN_NAME="swiftformat_linux"; \
+        EXPECTED="${SWIFTFORMAT_SHA256_AMD64}"; \
+    else \
+        ZIP_NAME="swiftformat_linux_aarch64.zip"; \
+        BIN_NAME="swiftformat_linux_aarch64"; \
+        EXPECTED="${SWIFTFORMAT_SHA256_ARM64}"; \
+    fi && \
+    wget -qO /tmp/swiftformat.zip "https://github.com/nicklockwood/SwiftFormat/releases/download/${SWIFTFORMAT_VERSION}/${ZIP_NAME}" && \
+    echo "${EXPECTED}  /tmp/swiftformat.zip" | sha256sum -c - && \
     unzip -o /tmp/swiftformat.zip -d /tmp && \
-    mv /tmp/swiftformat_linux_${ARCH} /usr/local/bin/swiftformat && \
+    mv "/tmp/${BIN_NAME}" /usr/local/bin/swiftformat && \
     chmod +x /usr/local/bin/swiftformat && \
     rm -f /tmp/swiftformat.zip
 
