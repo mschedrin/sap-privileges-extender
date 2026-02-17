@@ -275,6 +275,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
 extension AppDelegate {
     func startConfigFileWatcher(reloadAfterSetup: Bool = false) {
+        // Cancel any existing watcher before setting up a new one to avoid
+        // leaking file descriptors or crashing from a deallocated resumed DispatchSource.
+        stopConfigFileWatcher()
+
         guard let configManager = configManager else { return }
         let path = configManager.path
 

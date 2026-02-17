@@ -12,7 +12,10 @@ public final class ElevationSession {
     public private(set) var state: ElevationState = .idle
 
     /// The interval between re-elevation calls (seconds). Defaults to 1500 (25 min).
-    public var reElevationIntervalSeconds: TimeInterval
+    /// Automatically clamped to a minimum of 60 seconds.
+    public var reElevationIntervalSeconds: TimeInterval {
+        didSet { reElevationIntervalSeconds = max(60, reElevationIntervalSeconds) }
+    }
 
     /// Timestamp of the last re-elevation (or initial elevation).
     public private(set) var lastElevationTime: Date?

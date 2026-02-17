@@ -2,7 +2,7 @@ import Foundation
 import Yams
 
 /// Manages loading and saving the application configuration from a YAML file.
-public final class ConfigManager: @unchecked Sendable {
+public final class ConfigManager {
     /// The default config directory path: ~/Library/Application Support/PrivilegesExtender/
     public static let defaultConfigDirectoryPath: String = {
         let home = FileManager.default.homeDirectoryForCurrentUser.path
