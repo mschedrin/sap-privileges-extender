@@ -58,7 +58,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func setupSubsystems() -> AppConfig {
         let configManager = ConfigManager()
         self.configManager = configManager
-        let config = configManager.config
+        let config: AppConfig
+        do {
+            config = try configManager.load()
+        } catch {
+            NSLog("PrivilegesExtender: failed to load config, using defaults: %@", "\(error)")
+            config = ConfigManager.defaultConfig
+        }
 
         let logPath = (config.logFile as NSString).expandingTildeInPath
         let logger = Logger(filePath: logPath)

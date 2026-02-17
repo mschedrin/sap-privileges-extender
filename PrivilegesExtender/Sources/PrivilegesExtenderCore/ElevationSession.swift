@@ -49,6 +49,10 @@ public final class ElevationSession {
         if duration.isUntilLogout || duration.isIndefinite {
             return false
         }
+        // Treat invalid negative minutes (other than the -1 sentinel) as already expired
+        if duration.minutes < 0 {
+            return true
+        }
         let elapsed = now.timeIntervalSince(startTime)
         let totalSeconds = TimeInterval(duration.minutes * 60)
         return elapsed >= totalSeconds
@@ -72,8 +76,8 @@ public final class ElevationSession {
         guard case .active(_, let startTime, let duration) = state else {
             return nil
         }
-        // Special durations have no finite remaining time
-        if duration.isUntilLogout || duration.isIndefinite {
+        // Special or invalid durations have no finite remaining time
+        if duration.isUntilLogout || duration.isIndefinite || duration.minutes < 0 {
             return nil
         }
         let totalSeconds = TimeInterval(duration.minutes * 60)
