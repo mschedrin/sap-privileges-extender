@@ -6,8 +6,8 @@ final class ConfigTests: XCTestCase {
 
     func testAppConfigDefaultInit() {
         let config = AppConfig()
-        XCTAssertEqual(config.reasons, [])
-        XCTAssertEqual(config.durations, [])
+        XCTAssertEqual(config.reasons, AppConfig.defaultReasons)
+        XCTAssertEqual(config.durations, AppConfig.defaultDurations)
         XCTAssertEqual(config.privilegesCLIPath, "/Applications/Privileges.app/Contents/MacOS/PrivilegesCLI")
         XCTAssertEqual(config.reElevationIntervalSeconds, 1500)
         XCTAssertTrue(config.dismissNotifications)
@@ -82,6 +82,22 @@ final class ConfigTests: XCTestCase {
         XCTAssertEqual(config.reElevationIntervalSeconds, 600)
         XCTAssertFalse(config.dismissNotifications)
         XCTAssertEqual(config.logFile, "/tmp/log.txt")
+    }
+
+    func testPartialYAMLFallsBackToDefaultReasonsAndDurations() throws {
+        let yaml = """
+        dismiss_notifications: false
+        """
+
+        let decoder = YAMLDecoder()
+        let config = try decoder.decode(AppConfig.self, from: yaml)
+
+        XCTAssertEqual(config.reasons, AppConfig.defaultReasons)
+        XCTAssertEqual(config.durations, AppConfig.defaultDurations)
+        XCTAssertFalse(config.dismissNotifications)
+        XCTAssertEqual(config.privilegesCLIPath, "/Applications/Privileges.app/Contents/MacOS/PrivilegesCLI")
+        XCTAssertEqual(config.reElevationIntervalSeconds, 1500)
+        XCTAssertEqual(config.logFile, "~/Library/Logs/privileges-extender.log")
     }
 
     func testDurationOptionYAMLRoundTrip() throws {

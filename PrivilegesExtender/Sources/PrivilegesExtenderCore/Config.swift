@@ -9,9 +9,28 @@ public struct AppConfig: Codable, Equatable, Sendable {
     public var dismissNotifications: Bool
     public var logFile: String
 
+    public static let defaultReasons: [String] = [
+        "Update software",
+        "Installing software",
+        "Uninstalling software",
+        "Run script",
+        "Use software which requires elevation",
+        "Troubleshooting"
+    ]
+
+    public static let defaultDurations: [DurationOption] = [
+        DurationOption(label: "30 minutes", minutes: 30),
+        DurationOption(label: "1 hour", minutes: 60),
+        DurationOption(label: "2 hours", minutes: 120),
+        DurationOption(label: "8 hours", minutes: 480),
+        DurationOption(label: "24 hours", minutes: 1440),
+        DurationOption(label: "Until logout", minutes: -1),
+        DurationOption(label: "Indefinitely", minutes: 0)
+    ]
+
     public init(
-        reasons: [String] = [],
-        durations: [DurationOption] = [],
+        reasons: [String] = AppConfig.defaultReasons,
+        durations: [DurationOption] = AppConfig.defaultDurations,
         privilegesCLIPath: String = "/Applications/Privileges.app/Contents/MacOS/PrivilegesCLI",
         reElevationIntervalSeconds: Int = 1500,
         dismissNotifications: Bool = true,

@@ -15,29 +15,9 @@ public final class ConfigManager {
     }()
 
     /// The default configuration used when no config file exists.
-    public static let defaultConfig = AppConfig(
-        reasons: [
-            "Update software",
-            "Installing software",
-            "Uninstalling software",
-            "Run script",
-            "Use software which requires elevation",
-            "Troubleshooting"
-        ],
-        durations: [
-            DurationOption(label: "30 minutes", minutes: 30),
-            DurationOption(label: "1 hour", minutes: 60),
-            DurationOption(label: "2 hours", minutes: 120),
-            DurationOption(label: "8 hours", minutes: 480),
-            DurationOption(label: "24 hours", minutes: 1440),
-            DurationOption(label: "Until logout", minutes: -1),
-            DurationOption(label: "Indefinitely", minutes: 0)
-        ],
-        privilegesCLIPath: "/Applications/Privileges.app/Contents/MacOS/PrivilegesCLI",
-        reElevationIntervalSeconds: 1500,
-        dismissNotifications: true,
-        logFile: "~/Library/Logs/privileges-extender.log"
-    )
+    /// Uses the same defaults as AppConfig.init() so that partial YAML decoding
+    /// and ConfigManager both produce identical fallback values.
+    public static let defaultConfig = AppConfig()
 
     private let configFilePath: String
     private let fileManager: FileManager
