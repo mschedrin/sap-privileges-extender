@@ -12,6 +12,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var loginItemManager: LoginItemManager?
     private var permissionChecker: PermissionChecker?
     private var logViewerWindow: LogViewerWindow?
+    private var cachedConfig: AppConfig?
     private var configFileWatcher: DispatchSourceFileSystemObject?
     private var configFileDescriptor: Int32 = -1
 
@@ -21,6 +22,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         let config = setupSubsystems()
+        cachedConfig = config
         let callbacks = buildMenuCallbacks()
 
         guard let session = session else {
@@ -116,14 +118,29 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             statusBarController?.refresh()
 
             // Dismiss notifications shortly after elevation to catch the banner
-            if configManager?.config.dismissNotifications ?? false {
+            if cachedConfig?.dismissNotifications ?? false {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
                     self?.notificationDismisser?.dismissPrivilegesNotifications()
                 }
             }
         case .failure(let error):
             logger?.log("Elevation failed: \(error)")
+            showElevationFailureAlert(error)
         }
+    }
+
+    private func showElevationFailureAlert(_ error: PrivilegeError) {
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = "Elevation Failed"
+        alert.informativeText = switch error {
+        case .cliNotFound(let path): "PrivilegesCLI not found at: \(path)"
+        case .executionFailed(let code, let out): "CLI exited with code \(code).\n\(out)"
+        case .unexpectedOutput(let out): "Unexpected output: \(out)"
+        case .launchFailed(let desc): "Failed to launch CLI: \(desc)"
+        }
+        alert.addButton(withTitle: "OK")
+        alert.runModal()
     }
 
     private func handleRevoke() {
@@ -145,15 +162,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func startReElevationTimer() {
         stopReElevationTimer()
-        reElevationTimer = Timer.scheduledTimer(
+        // Non-scheduling initializer + .common mode so the timer fires during menu tracking too
+        let timer = Timer(
             timeInterval: timerInterval,
             target: self,
             selector: #selector(timerTick),
             userInfo: nil,
             repeats: true
         )
-        // Allow timer to fire even during menu tracking and other modal run loop modes
-        RunLoop.current.add(reElevationTimer!, forMode: .common)
+        RunLoop.current.add(timer, forMode: .common)
+        reElevationTimer = timer
     }
 
     private func stopReElevationTimer() {
@@ -163,9 +181,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func timerTick() {
         guard let session = session, let privilegeManager = privilegeManager else { return }
-        let config = configManager?.config
+        let config = cachedConfig
 
-        // Check if the session has expired
+        // Check if the session has expired (transitions to .expired state)
         if session.checkExpiry() {
             logger?.log("Session expired, revoking privileges")
             let revokeResult = privilegeManager.revoke()
@@ -278,6 +296,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         do {
             let newConfig = try configManager.reload()
+            cachedConfig = newConfig
             logger?.log("Configuration reloaded from file change")
             statusBarController?.updateConfig(newConfig)
         } catch {

@@ -5,6 +5,7 @@ import PrivilegesExtenderCore
 /// Manages the log viewer window, hosting a SwiftUI view inside an NSWindow.
 final class LogViewerWindow {
     private var window: NSWindow?
+    private var viewModel: LogViewerViewModel?
     private let logger: Logger
 
     init(logger: Logger) {
@@ -19,8 +20,12 @@ final class LogViewerWindow {
             return
         }
 
-        let viewModel = LogViewerViewModel(logger: logger)
-        let contentView = LogViewerView(viewModel: viewModel)
+        // Stop previous view model's timer before creating a new one
+        viewModel?.stopAutoRefresh()
+
+        let newViewModel = LogViewerViewModel(logger: logger)
+        self.viewModel = newViewModel
+        let contentView = LogViewerView(viewModel: newViewModel)
         let hostingController = NSHostingController(rootView: contentView)
 
         let newWindow = NSWindow(

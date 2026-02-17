@@ -5,6 +5,12 @@ public final class Logger: @unchecked Sendable {
     private let filePath: String
     private let fileManager: FileManager
     private let writeQueue = DispatchQueue(label: "com.user.privileges-extender.logger")
+    private let dateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        return formatter
+    }()
 
     public init(filePath: String, fileManager: FileManager = .default) {
         self.filePath = filePath
@@ -13,10 +19,7 @@ public final class Logger: @unchecked Sendable {
 
     /// Logs a message with a timestamp to the log file.
     public func log(_ message: String) {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        let timestamp = formatter.string(from: Date())
+        let timestamp = dateFormatter.string(from: Date())
         let entry = "[\(timestamp)] \(message)\n"
         append(entry)
     }
