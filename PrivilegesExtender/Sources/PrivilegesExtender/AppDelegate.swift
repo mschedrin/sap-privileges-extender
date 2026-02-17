@@ -82,8 +82,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.openConfiguration()
             },
             onToggleLoginItem: { [weak self] in
-                self?.loginItemManager?.toggle()
-                self?.statusBarController?.refresh()
+                self?.loginItemManager?.toggle { [weak self] in
+                    self?.statusBarController?.refresh()
+                }
             },
             onCheckPermissions: { [weak self] in
                 self?.permissionChecker?.showPermissionStatus()
@@ -272,9 +273,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             self?.handleConfigFileChange()
         }
 
+        // Capture the descriptor by value so the cancel handler closes the correct one,
+        // even if startConfigFileWatcher() has already opened a new descriptor.
+        let fd = fileDescriptor
         source.setCancelHandler { [weak self] in
-            if let descriptor = self?.configFileDescriptor, descriptor >= 0 {
-                close(descriptor)
+            close(fd)
+            if self?.configFileDescriptor == fd {
                 self?.configFileDescriptor = -1
             }
         }
@@ -295,10 +299,27 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         guard let configManager = configManager else { return }
 
         do {
+            let oldConfig = cachedConfig
             let newConfig = try configManager.reload()
             cachedConfig = newConfig
             logger?.log("Configuration reloaded from file change")
             statusBarController?.updateConfig(newConfig)
+
+            // Update notification dismisser if the setting changed
+            if newConfig.dismissNotifications != oldConfig?.dismissNotifications {
+                if newConfig.dismissNotifications {
+                    notificationDismisser = NotificationDismisser(logger: logger)
+                } else {
+                    notificationDismisser = nil
+                }
+            }
+
+            // Update privilege manager if CLI path changed
+            let newCLIPath = (newConfig.privilegesCLIPath as NSString).expandingTildeInPath
+            let oldCLIPath = oldConfig.map { ($0.privilegesCLIPath as NSString).expandingTildeInPath }
+            if newCLIPath != oldCLIPath {
+                privilegeManager = PrivilegeManager(cliPath: newCLIPath, logger: logger)
+            }
         } catch {
             logger?.log("Failed to reload config: \(error)")
         }

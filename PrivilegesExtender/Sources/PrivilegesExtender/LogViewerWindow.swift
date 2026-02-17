@@ -14,14 +14,12 @@ final class LogViewerWindow {
 
     /// Opens the log viewer window, or brings it to front if already open.
     func show() {
-        if let existing = window, existing.isVisible {
+        if let existing = window {
             existing.makeKeyAndOrderFront(nil)
+            existing.deminiaturize(nil)
             NSApp.activate(ignoringOtherApps: true)
             return
         }
-
-        // Stop previous view model's timer before creating a new one
-        viewModel?.stopAutoRefresh()
 
         let newViewModel = LogViewerViewModel(logger: logger)
         self.viewModel = newViewModel

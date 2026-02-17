@@ -19,9 +19,12 @@ public final class Logger: @unchecked Sendable {
 
     /// Logs a message with a timestamp to the log file.
     public func log(_ message: String) {
-        let timestamp = dateFormatter.string(from: Date())
-        let entry = "[\(timestamp)] \(message)\n"
-        append(entry)
+        let date = Date()
+        writeQueue.sync {
+            let timestamp = dateFormatter.string(from: date)
+            let entry = "[\(timestamp)] \(message)\n"
+            appendUnsafe(entry)
+        }
     }
 
     /// Reads the entire log file contents.
@@ -41,23 +44,22 @@ public final class Logger: @unchecked Sendable {
 
     // MARK: - Private
 
-    private func append(_ entry: String) {
-        writeQueue.sync {
-            let directory = (filePath as NSString).deletingLastPathComponent
-            if !fileManager.fileExists(atPath: directory) {
-                try? fileManager.createDirectory(atPath: directory, withIntermediateDirectories: true)
-            }
+    /// Appends an entry to the log file. Must be called from within writeQueue.
+    private func appendUnsafe(_ entry: String) {
+        let directory = (filePath as NSString).deletingLastPathComponent
+        if !fileManager.fileExists(atPath: directory) {
+            try? fileManager.createDirectory(atPath: directory, withIntermediateDirectories: true)
+        }
 
-            if fileManager.fileExists(atPath: filePath) {
-                guard let handle = FileHandle(forWritingAtPath: filePath) else { return }
-                defer { handle.closeFile() }
-                handle.seekToEndOfFile()
-                if let data = entry.data(using: .utf8) {
-                    handle.write(data)
-                }
-            } else {
-                try? entry.write(toFile: filePath, atomically: true, encoding: .utf8)
+        if fileManager.fileExists(atPath: filePath) {
+            guard let handle = FileHandle(forWritingAtPath: filePath) else { return }
+            defer { handle.closeFile() }
+            handle.seekToEndOfFile()
+            if let data = entry.data(using: .utf8) {
+                handle.write(data)
             }
+        } else {
+            try? entry.write(toFile: filePath, atomically: true, encoding: .utf8)
         }
     }
 }

@@ -38,6 +38,10 @@ public struct ProcessCLIExecutor: CLIExecutor {
     public init() {}
 
     public func run(executablePath: String, arguments: [String]) throws -> CLIResult {
+        guard FileManager.default.isExecutableFile(atPath: executablePath) else {
+            throw PrivilegeError.cliNotFound(path: executablePath)
+        }
+
         let process = Process()
         process.executableURL = URL(fileURLWithPath: executablePath)
         process.arguments = arguments
@@ -109,6 +113,9 @@ public final class PrivilegeManager: Sendable {
             }
             logger?.log("Elevation successful")
             return .success(())
+        } catch let privilegeError as PrivilegeError {
+            logger?.log("Elevation failed: \(privilegeError)")
+            return .failure(privilegeError)
         } catch {
             logger?.log("Elevation failed: \(error)")
             return .failure(.launchFailed(description: error.localizedDescription))
@@ -130,6 +137,9 @@ public final class PrivilegeManager: Sendable {
             }
             logger?.log("Revoke successful")
             return .success(())
+        } catch let privilegeError as PrivilegeError {
+            logger?.log("Revoke failed: \(privilegeError)")
+            return .failure(privilegeError)
         } catch {
             logger?.log("Revoke failed: \(error)")
             return .failure(.launchFailed(description: error.localizedDescription))

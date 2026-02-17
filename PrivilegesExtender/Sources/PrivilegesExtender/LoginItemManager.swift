@@ -18,12 +18,14 @@ final class LoginItemManager {
 
     /// Toggles the login item registration on or off.
     /// If currently enabled, unregisters; if disabled, registers.
-    func toggle() {
+    /// Calls the completion handler on the main queue when done.
+    func toggle(completion: (() -> Void)? = nil) {
         if isEnabled() {
             service.unregister { [weak self] error in
                 if let error = error {
                     self?.logger?.log("Login item unregister failed: \(error)")
                 }
+                DispatchQueue.main.async { completion?() }
             }
         } else {
             do {
@@ -31,6 +33,7 @@ final class LoginItemManager {
             } catch {
                 logger?.log("Login item register failed: \(error)")
             }
+            completion?()
         }
     }
 }
