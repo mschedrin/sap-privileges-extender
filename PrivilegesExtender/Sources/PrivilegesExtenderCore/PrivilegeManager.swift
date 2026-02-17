@@ -12,6 +12,7 @@ public enum PrivilegeError: Error, Equatable {
     case cliNotFound(path: String)
     case executionFailed(exitCode: Int32, output: String)
     case unexpectedOutput(String)
+    case launchFailed(description: String)
 }
 
 /// Protocol abstracting CLI execution for testability.
@@ -47,10 +48,12 @@ public struct ProcessCLIExecutor: CLIExecutor {
         process.standardError = stderrPipe
 
         try process.run()
-        process.waitUntilExit()
 
+        // Read pipes BEFORE waitUntilExit to avoid deadlock when pipe buffer fills
         let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
         let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+
+        process.waitUntilExit()
 
         let output = String(data: stdoutData, encoding: .utf8) ?? ""
         let errorOutput = String(data: stderrData, encoding: .utf8) ?? ""
@@ -108,7 +111,7 @@ public final class PrivilegeManager: Sendable {
             return .success(())
         } catch {
             logger?.log("Elevation failed: \(error)")
-            return .failure(.cliNotFound(path: cliPath))
+            return .failure(.launchFailed(description: error.localizedDescription))
         }
     }
 
@@ -129,7 +132,7 @@ public final class PrivilegeManager: Sendable {
             return .success(())
         } catch {
             logger?.log("Revoke failed: \(error)")
-            return .failure(.cliNotFound(path: cliPath))
+            return .failure(.launchFailed(description: error.localizedDescription))
         }
     }
 

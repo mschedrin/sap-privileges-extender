@@ -120,7 +120,7 @@ final class PrivilegeManagerTests: XCTestCase {
         }
     }
 
-    func testElevateFailsWhenCLINotFound() {
+    func testElevateFailsWhenCLILaunchFails() {
         let executor = MockCLIExecutor()
         executor.errorToThrow = NSError(domain: "NSPOSIXErrorDomain", code: 2, userInfo: nil)
         let manager = PrivilegeManager(cliPath: "/nonexistent/cli", executor: executor)
@@ -131,7 +131,11 @@ final class PrivilegeManagerTests: XCTestCase {
         case .success:
             XCTFail("Expected failure")
         case .failure(let error):
-            XCTAssertEqual(error, .cliNotFound(path: "/nonexistent/cli"))
+            if case .launchFailed = error {
+                // Expected
+            } else {
+                XCTFail("Expected .launchFailed, got \(error)")
+            }
         }
     }
 
@@ -168,7 +172,7 @@ final class PrivilegeManagerTests: XCTestCase {
         }
     }
 
-    func testRevokeFailsWhenCLINotFound() {
+    func testRevokeFailsWhenCLILaunchFails() {
         let executor = MockCLIExecutor()
         executor.errorToThrow = NSError(domain: "NSPOSIXErrorDomain", code: 2, userInfo: nil)
         let manager = PrivilegeManager(cliPath: "/nonexistent/cli", executor: executor)
@@ -179,7 +183,11 @@ final class PrivilegeManagerTests: XCTestCase {
         case .success:
             XCTFail("Expected failure")
         case .failure(let error):
-            XCTAssertEqual(error, .cliNotFound(path: "/nonexistent/cli"))
+            if case .launchFailed = error {
+                // Expected
+            } else {
+                XCTFail("Expected .launchFailed, got \(error)")
+            }
         }
     }
 

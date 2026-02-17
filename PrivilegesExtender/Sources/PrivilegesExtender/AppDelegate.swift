@@ -23,9 +23,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let config = setupSubsystems()
         let callbacks = buildMenuCallbacks()
 
+        guard let session = session else {
+            fatalError("ElevationSession was not initialized in setupSubsystems()")
+        }
+
         statusBarController = StatusBarController(
             config: config,
-            session: session!,
+            session: session,
             callbacks: callbacks,
             isLoginItemEnabled: { [weak self] in
                 self?.loginItemManager?.isEnabled() ?? false
@@ -53,7 +57,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             self.notificationDismisser = NotificationDismisser(logger: logger)
         }
 
-        self.loginItemManager = LoginItemManager()
+        self.loginItemManager = LoginItemManager(logger: logger)
         self.permissionChecker = PermissionChecker(cliPath: config.privilegesCLIPath)
         self.logViewerWindow = LogViewerWindow(logger: logger)
 
@@ -85,6 +89,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        // Revoke privileges for "Until logout" sessions on app quit
+        if let session = session, let duration = session.activeDuration,
+           duration.isUntilLogout {
+            logger?.log("App terminating, revoking 'Until logout' session")
+            _ = privilegeManager?.revoke()
+            session.stop()
+        }
+
         stopReElevationTimer()
         stopConfigFileWatcher()
     }
@@ -101,6 +113,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             logger?.log("Elevated with reason: \(reason), duration: \(duration.label)")
             startReElevationTimer()
             statusBarController?.refresh()
+
+            // Dismiss notifications shortly after elevation to catch the banner
+            if configManager?.config.dismissNotifications ?? false {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+                    self?.notificationDismisser?.dismissPrivilegesNotifications()
+                }
+            }
         case .failure(let error):
             logger?.log("Elevation failed: \(error)")
         }
@@ -148,7 +167,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Check if the session has expired
         if session.checkExpiry() {
             logger?.log("Session expired, revoking privileges")
-            _ = privilegeManager.revoke()
+            let revokeResult = privilegeManager.revoke()
+            if case .failure(let error) = revokeResult {
+                logger?.log("Failed to revoke on expiry: \(error)")
+            }
+            session.stop()
             stopReElevationTimer()
             statusBarController?.refresh()
             return
@@ -247,6 +270,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func handleConfigFileChange() {
+        // Capture flags BEFORE any cancellation so they remain valid
+        let flags = configFileWatcher?.data
+
         guard let configManager = configManager else { return }
 
         do {
@@ -259,7 +285,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // If the file was deleted or renamed, restart the watcher
         // (the old file descriptor may no longer be valid)
-        if let flags = configFileWatcher?.data,
+        if let flags = flags,
            flags.contains(.delete) || flags.contains(.rename) {
             stopConfigFileWatcher()
             // Delay restart slightly to allow the new file to appear (e.g., atomic save)

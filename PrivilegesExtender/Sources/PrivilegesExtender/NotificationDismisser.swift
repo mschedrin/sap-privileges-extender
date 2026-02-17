@@ -116,7 +116,8 @@ final class NotificationDismisser {
     }
 
     /// Attempts to close a notification by performing its "Close" action.
-    private func closeNotification(_ element: AXUIElement) -> Bool {
+    private func closeNotification(_ element: AXUIElement, depth: Int = 0) -> Bool {
+        guard depth < 10 else { return false }
         guard let actionNames = getActionNames(element) else { return false }
 
         for actionName in actionNames where actionName.contains("Close") {
@@ -129,7 +130,7 @@ final class NotificationDismisser {
             return false
         }
 
-        for child in children where closeNotification(child) {
+        for child in children where closeNotification(child, depth: depth + 1) {
             return true
         }
 
