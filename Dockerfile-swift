@@ -1,10 +1,10 @@
-# Universal development image with Swift compiler, Go toolchain, and ralphex
-# Based on Ubuntu (swift:6.2.3-noble) instead of Alpine for full Swift support
+# Swift/macOS development image with Swift compiler, Go toolchain, and ralphex
+# Tailored for macOS/Swift app development (PrivilegesExtender and similar projects)
 FROM ghcr.io/umputun/ralphex:v0.10.1 AS ralphex
 
 FROM swift:6.2.3-noble
 
-LABEL org.opencontainers.image.description="Autonomous plan execution with Claude Code - My Universal development image"
+LABEL org.opencontainers.image.description="Autonomous plan execution with Claude Code - Swift/macOS development image"
 
 # baseimage-compatible environment variables
 ENV TERM=xterm-color \
