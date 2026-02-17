@@ -2,5 +2,10 @@ notes.md
 *.app
 # ralphex progress logs
 .ralphex/progress/
+# macOS metadata
+.DS_Store
+
 # Swift build artifacts
 PrivilegesExtender/.build/
+PrivilegesExtender/build/
+PrivilegesExtender/Package.resolved

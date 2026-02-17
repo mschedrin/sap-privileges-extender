@@ -27,12 +27,13 @@ A native macOS menu bar app that keeps SAP Privileges admin rights elevated and 
 - `scripts/uninstall.sh` — Removes app, optionally config and logs
 - `Tests/PrivilegesExtenderCoreTests/` — Unit tests for Core library
 
-### Legacy PoC (repository root)
-- `privileges-extend.sh` — Original main script (re-elevates privileges, launches helper app)
-- `com.user.privileges-extender.plist` — LaunchAgent plist (runs every 15 min)
-- `helper/DismissNotifications.swift` — Swift helper app source
-- `helper/dismiss-notifications.applescript` — AppleScript for notification dismissal
-- `install.sh` / `uninstall.sh` — Old installers for the PoC
+### Legacy PoC (legacy/)
+- `legacy/privileges-extend.sh` — Original main script (re-elevates privileges, launches helper app)
+- `legacy/com.user.privileges-extender.plist` — LaunchAgent plist (runs every 15 min)
+- `legacy/helper/DismissNotifications.swift` — Swift helper app source
+- `legacy/helper/dismiss-notifications.applescript` — AppleScript for notification dismissal
+- `legacy/install.sh` / `legacy/uninstall.sh` — Old installers for the PoC
+- `legacy/README.md` — Description of the legacy PoC
 
 ## Two-target architecture
 - **PrivilegesExtenderCore** (library) — config models, YAML parsing, privilege status, elevation session, logging. Uses only Foundation + Yams. Compiles on macOS and Linux.
