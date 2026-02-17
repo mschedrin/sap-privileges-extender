@@ -20,7 +20,7 @@ public final class Logger: @unchecked Sendable {
     /// Logs a message with a timestamp to the log file.
     public func log(_ message: String) {
         let date = Date()
-        writeQueue.sync {
+        writeQueue.async { [self] in
             let timestamp = dateFormatter.string(from: date)
             let entry = "[\(timestamp)] \(message)\n"
             appendUnsafe(entry)

@@ -3,7 +3,7 @@ import SwiftUI
 import PrivilegesExtenderCore
 
 /// Manages the log viewer window, hosting a SwiftUI view inside an NSWindow.
-final class LogViewerWindow {
+final class LogViewerWindow: NSObject, NSWindowDelegate {
     private var window: NSWindow?
     private var viewModel: LogViewerViewModel?
     private let logger: Logger
@@ -37,10 +37,19 @@ final class LogViewerWindow {
         newWindow.center()
         newWindow.isReleasedWhenClosed = false
         newWindow.setFrameAutosaveName("LogViewerWindow")
+        newWindow.delegate = self
 
         newWindow.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
         self.window = newWindow
+    }
+
+    // MARK: - NSWindowDelegate
+
+    func windowWillClose(_ notification: Notification) {
+        viewModel?.stopAutoRefresh()
+        viewModel = nil
+        window = nil
     }
 }
 

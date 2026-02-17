@@ -198,6 +198,7 @@ final class MenuBuilder: NSObject {
         textField.placeholderString = "Reason for elevation"
         alert.accessoryView = textField
 
+        NSApp.activate(ignoringOtherApps: true)
         let response = alert.runModal()
         guard response == .alertFirstButtonReturn else { return }
 
@@ -221,6 +222,7 @@ final class MenuBuilder: NSObject {
         alert.addButton(withTitle: "Elevate")
         alert.addButton(withTitle: "Cancel")
 
+        NSApp.activate(ignoringOtherApps: true)
         let response = alert.runModal()
         guard response == .alertFirstButtonReturn else { return }
 

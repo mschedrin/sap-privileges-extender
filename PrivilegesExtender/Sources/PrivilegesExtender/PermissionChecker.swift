@@ -46,6 +46,7 @@ final class PermissionChecker {
             alert.addButton(withTitle: "OK")
         }
 
+        NSApp.activate(ignoringOtherApps: true)
         let response = alert.runModal()
 
         // If user clicked "Open Accessibility Settings"

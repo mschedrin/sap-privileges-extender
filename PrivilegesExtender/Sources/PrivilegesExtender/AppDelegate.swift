@@ -141,6 +141,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         case .launchFailed(let desc): "Failed to launch CLI: \(desc)"
         }
         alert.addButton(withTitle: "OK")
+        NSApp.activate(ignoringOtherApps: true)
         alert.runModal()
     }
 
@@ -298,6 +299,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         guard let configManager = configManager else { return }
 
+        // If the file was deleted or renamed (common with atomic saves by text editors),
+        // skip the reload to avoid overwriting the user's config with defaults.
+        // Restart the watcher after a delay so the new file can appear.
+        if let flags = flags,
+           flags.contains(.delete) || flags.contains(.rename) {
+            stopConfigFileWatcher()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                self?.startConfigFileWatcher()
+                self?.reloadConfig()
+            }
+            return
+        }
+
+        reloadConfig()
+    }
+
+    private func reloadConfig() {
+        guard let configManager = configManager else { return }
+
         do {
             let oldConfig = cachedConfig
             let newConfig = try configManager.reload()
@@ -320,19 +340,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             if newCLIPath != oldCLIPath {
                 privilegeManager = PrivilegeManager(cliPath: newCLIPath, logger: logger)
             }
+
+            // Update re-elevation interval if changed
+            let newInterval = TimeInterval(newConfig.reElevationIntervalSeconds)
+            if newInterval != TimeInterval(oldConfig?.reElevationIntervalSeconds ?? 0) {
+                session?.reElevationIntervalSeconds = max(60, newInterval)
+            }
         } catch {
             logger?.log("Failed to reload config: \(error)")
-        }
-
-        // If the file was deleted or renamed, restart the watcher
-        // (the old file descriptor may no longer be valid)
-        if let flags = flags,
-           flags.contains(.delete) || flags.contains(.rename) {
-            stopConfigFileWatcher()
-            // Delay restart slightly to allow the new file to appear (e.g., atomic save)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                self?.startConfigFileWatcher()
-            }
         }
     }
 }

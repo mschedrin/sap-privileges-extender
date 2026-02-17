@@ -22,7 +22,6 @@ final class NotificationDismisser {
     @discardableResult
     func dismissPrivilegesNotifications() -> Int {
         guard let ncPID = notificationCenterPID() else {
-            logger?.log("NotificationDismisser: NotificationCenter process not found")
             return 0
         }
 
