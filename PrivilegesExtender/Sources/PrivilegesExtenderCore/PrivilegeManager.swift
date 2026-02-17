@@ -53,9 +53,19 @@ public struct ProcessCLIExecutor: CLIExecutor {
 
         try process.run()
 
-        // Read pipes BEFORE waitUntilExit to avoid deadlock when pipe buffer fills
+        // Read both pipes concurrently to avoid deadlock when one pipe's buffer fills
+        // while the other is being read sequentially.
+        nonisolated(unsafe) var stderrData = Data()
+        let group = DispatchGroup()
+
+        group.enter()
+        let stderrHandle = stderrPipe.fileHandleForReading
+        DispatchQueue.global().async {
+            stderrData = stderrHandle.readDataToEndOfFile()
+            group.leave()
+        }
         let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
-        let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+        group.wait()
 
         process.waitUntilExit()
 

@@ -207,16 +207,22 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
-        // Check if the session has expired (transitions to .expired state)
-        if session.checkExpiry() {
+        // Check if the session has expired
+        if session.isExpired() {
             logger?.log("Session expired, revoking privileges")
             let revokeResult = privilegeManager.revoke()
-            if case .failure(let error) = revokeResult {
-                logger?.log("Failed to revoke on expiry: \(error)")
+            switch revokeResult {
+            case .success:
+                session.stop()
+                stopReElevationTimer()
+                statusBarController?.refresh()
+            case .failure(let error):
+                // Revoke failed — keep the session active so the timer retries
+                // on the next tick instead of leaving user elevated while the
+                // UI shows standard.
+                logger?.log("Failed to revoke on expiry: \(error), will retry")
+                statusBarController?.refresh()
             }
-            session.stop()
-            stopReElevationTimer()
-            statusBarController?.refresh()
             return
         }
 
@@ -263,20 +269,24 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSWorkspace.shared.open(url)
     }
 
-    // MARK: - Config File Watcher
+}
 
-    private func startConfigFileWatcher() {
+// MARK: - Config File Watcher
+
+extension AppDelegate {
+    func startConfigFileWatcher(reloadAfterSetup: Bool = false) {
         guard let configManager = configManager else { return }
         let path = configManager.path
 
-        // Ensure the config file exists so we can open a file descriptor for it
+        // If the config file doesn't exist yet (e.g. mid-atomic-save), retry after a delay
+        // instead of calling load() which would create a default config and overwrite an
+        // in-flight save. Pass reloadAfterSetup through so the config is reloaded once the
+        // file appears and the watcher is successfully created.
         if !FileManager.default.fileExists(atPath: path) {
-            do {
-                _ = try configManager.load()
-            } catch {
-                logger?.log("Failed to create config for watcher: \(error)")
-                return
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+                self?.startConfigFileWatcher(reloadAfterSetup: reloadAfterSetup)
             }
+            return
         }
 
         let fileDescriptor = open(path, O_EVTONLY)
@@ -298,19 +308,26 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Capture the descriptor by value so the cancel handler closes the correct one,
         // even if startConfigFileWatcher() has already opened a new descriptor.
-        let fd = fileDescriptor
+        let capturedDescriptor = fileDescriptor
         source.setCancelHandler { [weak self] in
-            close(fd)
-            if self?.configFileDescriptor == fd {
+            close(capturedDescriptor)
+            if self?.configFileDescriptor == capturedDescriptor {
                 self?.configFileDescriptor = -1
             }
         }
 
         source.resume()
         configFileWatcher = source
+
+        // When the watcher was restarted after a rename/delete (atomic save), the file
+        // may have been replaced while no watcher was active. Reload now so we don't
+        // miss the update.
+        if reloadAfterSetup {
+            reloadConfig()
+        }
     }
 
-    private func stopConfigFileWatcher() {
+    func stopConfigFileWatcher() {
         configFileWatcher?.cancel()
         configFileWatcher = nil
     }
@@ -319,7 +336,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Capture flags BEFORE any cancellation so they remain valid
         let flags = configFileWatcher?.data
 
-        guard let configManager = configManager else { return }
+        guard configManager != nil else { return }
 
         // If the file was deleted or renamed (common with atomic saves by text editors),
         // skip the reload to avoid overwriting the user's config with defaults.
@@ -328,8 +345,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
            flags.contains(.delete) || flags.contains(.rename) {
             stopConfigFileWatcher()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                self?.startConfigFileWatcher()
-                self?.reloadConfig()
+                self?.startConfigFileWatcher(reloadAfterSetup: true)
             }
             return
         }
@@ -339,6 +355,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func reloadConfig() {
         guard let configManager = configManager else { return }
+
+        // If the file doesn't exist (e.g. mid-atomic-save), skip the reload.
+        // load() would create a default config and overwrite an in-flight save.
+        // The config watcher will retry once the new file appears.
+        guard FileManager.default.fileExists(atPath: configManager.path) else {
+            return
+        }
 
         do {
             let oldConfig = cachedConfig

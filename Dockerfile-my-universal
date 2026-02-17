@@ -1,6 +1,6 @@
 # Universal development image with Swift compiler, Go toolchain, and ralphex
 # Based on Ubuntu (swift:6.2.3-noble) instead of Alpine for full Swift support
-FROM ghcr.io/umputun/ralphex:latest AS ralphex
+FROM ghcr.io/umputun/ralphex:v0.10.1 AS ralphex
 
 FROM swift:6.2.3-noble
 
@@ -50,15 +50,31 @@ ENV GOROOT=/usr/local/go
 ENV GOPATH=/home/app/go
 ENV PATH="${PATH}:${GOROOT}/bin:${GOPATH}/bin"
 
-# install go development tools (golangci-lint, moq, goimports)
-RUN wget -qO- https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b /usr/local/bin && \
-    GOBIN=/usr/local/bin go install github.com/matryer/moq@latest && \
-    GOBIN=/usr/local/bin go install golang.org/x/tools/cmd/goimports@latest
+# install go development tools (golangci-lint, moq, goimports) — pinned versions
+ARG GOLANGCI_LINT_VERSION=v2.9.0
+ARG GOLANGCI_LINT_SHA256_AMD64=493aaaca2eba6c8bcef847d92716bbd91bbac4b22cdbb0ab5b6a581b32946091
+ARG GOLANGCI_LINT_SHA256_ARM64=94e80cdb51c73c20a313bd3afa1fb23137728813c19fd730248a1e8678fcc46d
+RUN ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/') && \
+    TARBALL="golangci-lint-${GOLANGCI_LINT_VERSION#v}-linux-${ARCH}.tar.gz" && \
+    wget -qO "/tmp/${TARBALL}" "https://github.com/golangci/golangci-lint/releases/download/${GOLANGCI_LINT_VERSION}/${TARBALL}" && \
+    if [ "$ARCH" = "amd64" ]; then EXPECTED="${GOLANGCI_LINT_SHA256_AMD64}"; else EXPECTED="${GOLANGCI_LINT_SHA256_ARM64}"; fi && \
+    echo "${EXPECTED}  /tmp/${TARBALL}" | sha256sum -c - && \
+    tar -xzf "/tmp/${TARBALL}" -C /tmp && \
+    mv "/tmp/golangci-lint-${GOLANGCI_LINT_VERSION#v}-linux-${ARCH}/golangci-lint" /usr/local/bin/golangci-lint && \
+    chmod +x /usr/local/bin/golangci-lint && \
+    rm -rf "/tmp/${TARBALL}" "/tmp/golangci-lint-${GOLANGCI_LINT_VERSION#v}-linux-${ARCH}" && \
+    GOBIN=/usr/local/bin go install github.com/matryer/moq@v0.5.3 && \
+    GOBIN=/usr/local/bin go install golang.org/x/tools/cmd/goimports@v0.33.0
 
 # install additional development tools
+ARG YQ_VERSION=v4.52.4
+ARG YQ_SHA256_AMD64=0c4d965ea944b64b8fddaf7f27779ee3034e5693263786506ccd1c120f184e8c
+ARG YQ_SHA256_ARM64=4c2cc022a129be5cc1187959bb4b09bebc7fb543c5837b93001c68f97ce39a5d
 RUN pip3 install --break-system-packages yamllint && \
     ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/') && \
-    wget -qO /usr/local/bin/yq "https://github.com/mikefarah/yq/releases/latest/download/yq_linux_${ARCH}" && \
+    wget -qO /usr/local/bin/yq "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_${ARCH}" && \
+    if [ "$ARCH" = "amd64" ]; then EXPECTED="${YQ_SHA256_AMD64}"; else EXPECTED="${YQ_SHA256_ARM64}"; fi && \
+    echo "${EXPECTED}  /usr/local/bin/yq" | sha256sum -c - && \
     chmod +x /usr/local/bin/yq
 
 # install Swift development tools (linter + formatter)
