@@ -17,10 +17,13 @@ From the menu bar you can:
 
 - Elevate privileges with a predefined reason and chosen duration
 - Enter a custom reason via "Other..."
+- Pause/resume auto-extend to temporarily stop re-elevation
 - Revoke privileges manually
 - View logs, edit configuration, toggle start-at-login
 
-When elevated, a background timer re-invokes PrivilegesCLI every 25 minutes (configurable) to keep privileges alive for your chosen duration. Notifications from SAP Privileges are automatically dismissed via the Accessibility API.
+When elevated, a background timer re-invokes PrivilegesCLI every 25 minutes (configurable) to keep privileges alive for your chosen duration. You can pause and resume this auto-extend from the menu. Notifications from SAP Privileges are automatically dismissed via the Accessibility API.
+
+On launch, the app checks for required permissions (Accessibility and PrivilegesCLI) and shows a dialog if anything is missing.
 
 ## Menu structure
 
@@ -42,6 +45,7 @@ When elevated, a background timer re-invokes PrivilegesCLI every 25 minutes (con
 │   ├── ...other reasons...
 │   ├── ─────────────────────
 │   └── Other...               ← text input dialog
+├── ↻ Auto-extending — next in 22 min
 ├── Revoke Privileges
 ├── ─────────────────────
 ├── View Logs
@@ -198,9 +202,9 @@ PrivilegesExtender/
 
 ## Legacy PoC
 
-The original proof-of-concept (shell script + LaunchAgent + helper app) files remain in the repository root for reference:
+The original proof-of-concept (shell script + LaunchAgent + helper app) is preserved in the `legacy/` directory:
 
-- `privileges-extend.sh` — main script
-- `com.user.privileges-extender.plist` — LaunchAgent plist
-- `helper/` — Swift helper app and AppleScript
-- `install.sh` / `uninstall.sh` — old installers
+- `legacy/privileges-extend.sh` — main script
+- `legacy/com.user.privileges-extender.plist` — LaunchAgent plist
+- `legacy/helper/` — Swift helper app and AppleScript
+- `legacy/install.sh` / `legacy/uninstall.sh` — old installers
