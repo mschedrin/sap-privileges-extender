@@ -20,6 +20,11 @@ public final class ElevationSession {
     /// Timestamp of the last re-elevation (or initial elevation).
     public private(set) var lastElevationTime: Date?
 
+    /// Whether automatic re-elevation is enabled. Defaults to true.
+    /// When false, `shouldReElevate()` always returns false and
+    /// `timeUntilNextReElevation(now:)` returns nil.
+    public private(set) var isAutoExtendEnabled: Bool = true
+
     public init(reElevationIntervalSeconds: TimeInterval = 1500) {
         self.reElevationIntervalSeconds = max(60, reElevationIntervalSeconds)
     }
@@ -30,12 +35,14 @@ public final class ElevationSession {
     public func start(reason: String, duration: DurationOption, now: Date = Date()) {
         state = .active(reason: reason, startTime: now, duration: duration)
         lastElevationTime = now
+        isAutoExtendEnabled = true
     }
 
     /// Stop the current session and return to idle.
     public func stop() {
         state = .idle
         lastElevationTime = nil
+        isAutoExtendEnabled = true
     }
 
     // MARK: - Expiry
@@ -93,6 +100,9 @@ public final class ElevationSession {
         guard case .active = state else {
             return false
         }
+        if !isAutoExtendEnabled {
+            return false
+        }
         // Check expiry first
         if isExpired(now: now) {
             return false
@@ -107,6 +117,29 @@ public final class ElevationSession {
     /// Record that a re-elevation just occurred.
     public func recordReElevation(at now: Date = Date()) {
         lastElevationTime = now
+    }
+
+    /// Pause automatic re-elevation.
+    public func stopAutoExtend() {
+        isAutoExtendEnabled = false
+    }
+
+    /// Resume automatic re-elevation.
+    public func resumeAutoExtend() {
+        isAutoExtendEnabled = true
+    }
+
+    /// Returns the time in seconds until the next scheduled re-elevation, or nil
+    /// if the session is not active or auto-extend is disabled.
+    public func timeUntilNextReElevation(now: Date = Date()) -> TimeInterval? {
+        guard case .active = state, isAutoExtendEnabled else {
+            return nil
+        }
+        guard let lastTime = lastElevationTime else {
+            return 0
+        }
+        let elapsed = now.timeIntervalSince(lastTime)
+        return max(0, reElevationIntervalSeconds - elapsed)
     }
 
     // MARK: - Convenience Accessors

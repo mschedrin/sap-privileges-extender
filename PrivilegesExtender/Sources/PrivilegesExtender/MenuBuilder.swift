@@ -5,6 +5,7 @@ import PrivilegesExtenderCore
 struct MenuCallbacks {
     var onElevate: ((_ reason: String, _ duration: DurationOption) -> Void)?
     var onRevoke: (() -> Void)?
+    var onToggleAutoExtend: (() -> Void)?
     var onViewLogs: (() -> Void)?
     var onOpenConfiguration: (() -> Void)?
     var onToggleLoginItem: (() -> Void)?
@@ -41,6 +42,9 @@ final class MenuBuilder: NSObject {
         menu.addItem(NSMenuItem.separator())
 
         addElevationItems(to: menu)
+        if isElevated {
+            addAutoExtendItems(to: menu)
+        }
         menu.addItem(NSMenuItem.separator())
 
         addUtilityItems(to: menu)
@@ -64,6 +68,24 @@ final class MenuBuilder: NSObject {
         revokeItem.target = self
         revokeItem.isEnabled = isElevated
         menu.addItem(revokeItem)
+    }
+
+    private func addAutoExtendItems(to menu: NSMenu) {
+        let title: String
+        if session.isAutoExtendEnabled {
+            if let timeLeft = session.timeUntilNextReElevation() {
+                let formatted = ElevationSession.formatRemainingTime(timeLeft)
+                title = "\u{21BB} Auto-extending \u{2014} next in \(formatted)"
+            } else {
+                title = "\u{21BB} Auto-extending"
+            }
+        } else {
+            title = "\u{21BB} Auto-extend paused"
+        }
+
+        let item = NSMenuItem(title: title, action: #selector(toggleAutoExtendAction), keyEquivalent: "")
+        item.target = self
+        menu.addItem(item)
     }
 
     private func addUtilityItems(to menu: NSMenu) {
@@ -165,6 +187,10 @@ final class MenuBuilder: NSObject {
     @objc private func elevateAction(_ sender: NSMenuItem) {
         guard let choice = sender.representedObject as? ElevateChoice else { return }
         callbacks.onElevate?(choice.reason, choice.duration)
+    }
+
+    @objc private func toggleAutoExtendAction() {
+        callbacks.onToggleAutoExtend?()
     }
 
     @objc private func revokeAction() {

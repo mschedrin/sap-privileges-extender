@@ -54,6 +54,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
+        // Check permissions on startup and show dialog if something is missing
+        if permissionChecker?.hasAllPermissions() == false {
+            permissionChecker?.showPermissionStatus()
+        }
+
         startConfigFileWatcher()
     }
 
@@ -96,6 +101,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             },
             onRevoke: { [weak self] in
                 self?.handleRevoke()
+            },
+            onToggleAutoExtend: { [weak self] in
+                self?.handleToggleAutoExtend()
             },
             onViewLogs: { [weak self] in
                 self?.logViewerWindow?.show()
@@ -167,18 +175,48 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         alert.runModal()
     }
 
+    private func handleToggleAutoExtend() {
+        guard let session = session else { return }
+        if session.isAutoExtendEnabled {
+            session.stopAutoExtend()
+            logger?.log("Auto-extend paused by user")
+        } else {
+            session.resumeAutoExtend()
+            logger?.log("Auto-extend resumed by user")
+
+            // Re-elevate immediately if overdue so MDM doesn't revoke before
+            // the next timer tick (up to 30s away).
+            if session.shouldReElevate(), let reason = session.activeReason {
+                logger?.log("Re-elevating immediately on resume (overdue)")
+                if case .success = privilegeManager?.elevate(reason: reason) {
+                    session.recordReElevation()
+                    logger?.log("Immediate re-elevation successful")
+                }
+            }
+        }
+        statusBarController?.refresh()
+    }
+
     private func handleRevoke() {
         guard let session = session, let privilegeManager = privilegeManager else { return }
+
+        // Stop the timer BEFORE the CLI call. Process.waitUntilExit() spins the
+        // RunLoop in default mode, and the timer (registered in .common mode) can
+        // fire during that spin. Without this, timerTick() would see the session
+        // still active but privileges already revoked (standard), misinterpret it
+        // as an MDM timeout, and immediately re-elevate.
+        stopReElevationTimer()
 
         let result = privilegeManager.revoke()
         switch result {
         case .success:
             session.stop()
             logger?.log("Privileges revoked")
-            stopReElevationTimer()
             statusBarController?.refresh()
         case .failure(let error):
             logger?.log("Revoke failed: \(error)")
+            // Restart the timer since the session is still active
+            startReElevationTimer()
         }
     }
 
@@ -219,7 +257,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 statusBarController?.refresh()
                 return
             }
-            if let reason = session.activeReason {
+            if !session.isAutoExtendEnabled {
+                logger?.log("Privileges lost but auto-extend is paused, skipping re-elevation")
+            } else if let reason = session.activeReason {
                 logger?.log("Privileges lost (MDM timeout?), re-elevating")
                 let result = privilegeManager.elevate(reason: reason)
                 switch result {

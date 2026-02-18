@@ -337,4 +337,119 @@ final class ElevationSessionTests: XCTestCase {
         XCTAssertEqual(ElevationSession.formatRemainingTime(120 * 60), "2h")
         XCTAssertEqual(ElevationSession.formatRemainingTime(24 * 60 * 60), "24h")
     }
+
+    // MARK: - Auto-Extend
+
+    func testAutoExtendEnabledByDefault() {
+        let session = makeSession()
+        XCTAssertTrue(session.isAutoExtendEnabled)
+    }
+
+    func testAutoExtendResetToEnabledOnStart() {
+        let session = makeSession()
+        session.stopAutoExtend()
+        XCTAssertFalse(session.isAutoExtendEnabled)
+
+        session.start(reason: "Test", duration: thirtyMin, now: fixedNow)
+        XCTAssertTrue(session.isAutoExtendEnabled)
+    }
+
+    func testStopAutoExtendDisablesIt() {
+        let session = makeSession()
+        session.start(reason: "Test", duration: thirtyMin, now: fixedNow)
+        session.stopAutoExtend()
+        XCTAssertFalse(session.isAutoExtendEnabled)
+    }
+
+    func testResumeAutoExtend() {
+        let session = makeSession()
+        session.start(reason: "Test", duration: thirtyMin, now: fixedNow)
+        session.stopAutoExtend()
+        XCTAssertFalse(session.isAutoExtendEnabled)
+
+        session.resumeAutoExtend()
+        XCTAssertTrue(session.isAutoExtendEnabled)
+    }
+
+    func testShouldReElevateFalseWhenAutoExtendDisabled() {
+        let session = makeSession(reElevationInterval: 1500)
+        session.start(reason: "Test", duration: oneHour, now: fixedNow)
+        session.stopAutoExtend()
+
+        let after = fixedNow.addingTimeInterval(1500)
+        XCTAssertFalse(session.shouldReElevate(now: after))
+    }
+
+    func testShouldReElevateTrueWhenAutoExtendReEnabled() {
+        let session = makeSession(reElevationInterval: 1500)
+        session.start(reason: "Test", duration: oneHour, now: fixedNow)
+        session.stopAutoExtend()
+        session.resumeAutoExtend()
+
+        let after = fixedNow.addingTimeInterval(1500)
+        XCTAssertTrue(session.shouldReElevate(now: after))
+    }
+
+    func testTimeUntilNextReElevationWhenActive() throws {
+        let session = makeSession(reElevationInterval: 1500)
+        session.start(reason: "Test", duration: oneHour, now: fixedNow)
+
+        let later = fixedNow.addingTimeInterval(600) // 10 min later
+        let time = try XCTUnwrap(session.timeUntilNextReElevation(now: later))
+        XCTAssertEqual(time, 900, accuracy: 0.001) // 1500 - 600 = 900
+    }
+
+    func testTimeUntilNextReElevationNilWhenIdle() {
+        let session = makeSession()
+        XCTAssertNil(session.timeUntilNextReElevation(now: fixedNow))
+    }
+
+    func testTimeUntilNextReElevationNilWhenAutoExtendDisabled() {
+        let session = makeSession(reElevationInterval: 1500)
+        session.start(reason: "Test", duration: oneHour, now: fixedNow)
+        session.stopAutoExtend()
+
+        let later = fixedNow.addingTimeInterval(600)
+        XCTAssertNil(session.timeUntilNextReElevation(now: later))
+    }
+
+    func testTimeUntilNextReElevationAfterRecord() throws {
+        let session = makeSession(reElevationInterval: 1500)
+        session.start(reason: "Test", duration: oneHour, now: fixedNow)
+
+        let reElevationTime = fixedNow.addingTimeInterval(1500)
+        session.recordReElevation(at: reElevationTime)
+
+        let later = reElevationTime.addingTimeInterval(300) // 5 min after re-elevation
+        let time = try XCTUnwrap(session.timeUntilNextReElevation(now: later))
+        XCTAssertEqual(time, 1200, accuracy: 0.001) // 1500 - 300 = 1200
+    }
+
+    func testTimeUntilNextReElevationClampedToZero() throws {
+        let session = makeSession(reElevationInterval: 1500)
+        session.start(reason: "Test", duration: oneHour, now: fixedNow)
+
+        let overdue = fixedNow.addingTimeInterval(2000) // past the interval
+        let time = try XCTUnwrap(session.timeUntilNextReElevation(now: overdue))
+        XCTAssertEqual(time, 0, accuracy: 0.001)
+    }
+
+    func testAutoExtendStatePreservedAcrossReElevation() {
+        let session = makeSession(reElevationInterval: 1500)
+        session.start(reason: "Test", duration: oneHour, now: fixedNow)
+        session.stopAutoExtend()
+
+        session.recordReElevation(at: fixedNow.addingTimeInterval(1500))
+        XCTAssertFalse(session.isAutoExtendEnabled)
+    }
+
+    func testStopSessionClearsAutoExtendState() {
+        let session = makeSession()
+        session.start(reason: "Test", duration: thirtyMin, now: fixedNow)
+        session.stopAutoExtend()
+        XCTAssertFalse(session.isAutoExtendEnabled)
+
+        session.stop()
+        XCTAssertTrue(session.isAutoExtendEnabled)
+    }
 }

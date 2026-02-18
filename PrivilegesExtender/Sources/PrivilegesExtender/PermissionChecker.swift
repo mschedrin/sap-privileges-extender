@@ -4,14 +4,27 @@ import PrivilegesExtenderCore
 /// Checks required system permissions and shows results to the user.
 final class PermissionChecker {
     private let cliPath: String
+    private let isAccessibilityTrusted: () -> Bool
+    private let isFileExecutable: (String) -> Bool
 
-    init(cliPath: String) {
+    init(
+        cliPath: String,
+        isAccessibilityTrusted: @escaping () -> Bool = { AXIsProcessTrusted() },
+        isFileExecutable: @escaping (String) -> Bool = { FileManager.default.isExecutableFile(atPath: $0) }
+    ) {
         self.cliPath = cliPath
+        self.isAccessibilityTrusted = isAccessibilityTrusted
+        self.isFileExecutable = isFileExecutable
+    }
+
+    /// Returns `true` when both Accessibility and PrivilegesCLI are available.
+    func hasAllPermissions() -> Bool {
+        isAccessibilityTrusted() && checkCLIAvailable()
     }
 
     /// Checks all required permissions and displays results in an alert dialog.
     func showPermissionStatus() {
-        let accessibilityGranted = AXIsProcessTrusted()
+        let accessibilityGranted = isAccessibilityTrusted()
         let cliAvailable = checkCLIAvailable()
 
         let alert = NSAlert()
@@ -58,7 +71,7 @@ final class PermissionChecker {
     /// Checks whether PrivilegesCLI exists and is executable.
     private func checkCLIAvailable() -> Bool {
         let path = (cliPath as NSString).expandingTildeInPath
-        return FileManager.default.isExecutableFile(atPath: path)
+        return isFileExecutable(path)
     }
 
     /// Prompts the user to grant Accessibility permission via the system dialog.
