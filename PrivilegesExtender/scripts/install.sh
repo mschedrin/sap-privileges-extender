@@ -1,7 +1,7 @@
 #!/bin/bash
 # install.sh — Install PrivilegesExtender menu bar app
 #
-# Usage:
+# Usage (from PrivilegesExtender/):
 #   ./scripts/install.sh                    # Install from default build location
 #   ./scripts/install.sh --app-path PATH    # Install from custom .app path
 #
@@ -43,7 +43,7 @@ echo "=== Installing $APP_NAME ==="
 # Verify the .app bundle exists
 if [[ ! -d "$APP_BUNDLE" ]]; then
     echo "Error: App bundle not found at $APP_BUNDLE"
-    echo "Run scripts/build.sh first to build the app."
+    echo "Run ./scripts/build.sh first (from PrivilegesExtender/)."
     exit 1
 fi
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 # build.sh — Build PrivilegesExtender and create .app bundle
 #
-# Usage:
+# Usage (from PrivilegesExtender/):
 #   ./scripts/build.sh              # Release build (default)
 #   ./scripts/build.sh --debug      # Debug build
 #   ./scripts/build.sh --output DIR # Custom output directory

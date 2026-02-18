@@ -143,7 +143,7 @@ final class ConfigManagerTests: XCTestCase {
 
         XCTAssertEqual(config.privilegesCLIPath, "/Applications/Privileges.app/Contents/MacOS/PrivilegesCLI")
         XCTAssertEqual(config.reElevationIntervalSeconds, 1500)
-        XCTAssertTrue(config.dismissNotifications)
+        XCTAssertFalse(config.dismissNotifications)
         XCTAssertEqual(config.logFile, "~/Library/Logs/privileges-extender.log")
     }
 

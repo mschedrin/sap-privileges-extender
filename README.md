@@ -21,9 +21,11 @@ From the menu bar you can:
 - Revoke privileges manually
 - View logs, edit configuration, toggle start-at-login
 
-When elevated, a background timer re-invokes PrivilegesCLI every 25 minutes (configurable) to keep privileges alive for your chosen duration. You can pause and resume this auto-extend from the menu. Notifications from SAP Privileges are automatically dismissed via the Accessibility API.
+When elevated, a background timer re-invokes PrivilegesCLI every 25 minutes (configurable) to keep privileges alive for your chosen duration. You can pause and resume this auto-extend from the menu.
 
-On launch, the app checks for required permissions (Accessibility and PrivilegesCLI) and shows a dialog if anything is missing.
+Notifications from SAP Privileges are suppressed by freezing `usernoted` (the macOS notification display daemon) before each elevation call and killing it after, so the banner never renders. launchd restarts it fresh without the queued notification. This is the default and most reliable method. As a fallback, AXUIElement-based dismissal (Accessibility API) can also be enabled to catch any notifications that slip through.
+
+On launch, the app checks for required permissions (PrivilegesCLI, and Accessibility if the dismiss fallback is enabled) and shows a dialog if anything is missing.
 
 ## Menu structure
 
@@ -77,7 +79,9 @@ cd PrivilegesExtender
 ./scripts/install.sh
 ```
 
-### Grant permissions
+### Grant permissions (optional)
+
+Only needed if you enable `dismiss_notifications` in config (disabled by default):
 
 1. Open **System Settings > Privacy & Security > Accessibility**
 2. Enable **PrivilegesExtender**
@@ -139,7 +143,8 @@ durations:
 
 privileges_cli_path: "/Applications/Privileges.app/Contents/MacOS/PrivilegesCLI"
 re_elevation_interval_seconds: 1500   # 25 min — re-elevate before 30-min MDM timeout
-dismiss_notifications: true
+suppress_notifications: true          # freeze usernoted to suppress banners
+dismiss_notifications: false           # AXUIElement-based dismissal after elevation (fallback, needs Accessibility)
 log_file: "~/Library/Logs/privileges-extender.log"
 ```
 
@@ -163,7 +168,7 @@ tail -f ~/Library/Logs/privileges-extender.log
 The project uses a two-target Swift Package Manager structure:
 
 - **PrivilegesExtenderCore** (library) — config models, YAML parsing, privilege status parsing, elevation session state machine, duration/timer logic, logging. Uses Foundation + Yams. Cross-platform (macOS and Linux).
-- **PrivilegesExtender** (executable) — AppKit menu bar UI, AXUIElement notification dismissal, SMAppService login items, SwiftUI log viewer. macOS only.
+- **PrivilegesExtender** (executable) — AppKit menu bar UI, usernoted-based notification suppression, AXUIElement notification dismissal (fallback), SMAppService login items, SwiftUI log viewer. macOS only.
 
 ```
 PrivilegesExtender/
@@ -180,7 +185,8 @@ PrivilegesExtender/
 │       ├── AppDelegate.swift       # App lifecycle, timer management
 │       ├── StatusBarController.swift
 │       ├── MenuBuilder.swift       # Full menu from config
-│       ├── NotificationDismisser.swift  # AXUIElement-based dismissal
+│       ├── NotificationSuppressor.swift # usernoted freeze/kill suppression
+│       ├── NotificationDismisser.swift  # AXUIElement-based dismissal (fallback)
 │       ├── PermissionChecker.swift
 │       ├── LoginItemManager.swift  # SMAppService login items
 │       └── LogViewerWindow.swift   # SwiftUI log viewer
@@ -198,7 +204,7 @@ PrivilegesExtender/
 
 - macOS 13+ (Ventura or later)
 - SAP Privileges.app installed
-- Accessibility permission for notification dismissal
+- Accessibility permission (only needed if `dismiss_notifications` fallback is enabled)
 
 ## Legacy PoC
 

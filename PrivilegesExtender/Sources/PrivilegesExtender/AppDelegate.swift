@@ -8,6 +8,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var privilegeManager: PrivilegeManager?
     private var logger: Logger?
     private var reElevationTimer: Timer?
+    private var notificationSuppressor: NotificationSuppressor?
     private var notificationDismisser: NotificationDismisser?
     private var loginItemManager: LoginItemManager?
     private var permissionChecker: PermissionChecker?
@@ -83,12 +84,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             reElevationIntervalSeconds: TimeInterval(config.reElevationIntervalSeconds)
         )
 
+        if config.suppressNotifications {
+            self.notificationSuppressor = NotificationSuppressor(logger: logger)
+        }
+
         if config.dismissNotifications {
             self.notificationDismisser = NotificationDismisser(logger: logger)
         }
 
         self.loginItemManager = LoginItemManager(logger: logger)
-        self.permissionChecker = PermissionChecker(cliPath: config.privilegesCLIPath)
+        self.permissionChecker = PermissionChecker(
+            cliPath: config.privilegesCLIPath,
+            checkAccessibility: config.dismissNotifications
+        )
         self.logViewerWindow = LogViewerWindow(logger: logger)
 
         return config
@@ -137,10 +145,28 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - Actions
 
-    private func handleElevate(reason: String, duration: DurationOption) {
-        guard let session = session, let privilegeManager = privilegeManager else { return }
+    /// Wraps a privilege elevation call with notification suppression when configured.
+    /// Freezes usernoted before the CLI call and kills it after so the banner never renders.
+    private func elevateWithSuppression(reason: String) -> Result<Void, PrivilegeError> {
+        guard let privilegeManager = privilegeManager else {
+            return .failure(.launchFailed(description: "PrivilegeManager not initialized"))
+        }
 
-        let result = privilegeManager.elevate(reason: reason)
+        if let suppressor = notificationSuppressor {
+            var result: Result<Void, PrivilegeError> = .failure(.launchFailed(description: "Not executed"))
+            suppressor.withSuppressedNotifications {
+                result = privilegeManager.elevate(reason: reason)
+            }
+            return result
+        } else {
+            return privilegeManager.elevate(reason: reason)
+        }
+    }
+
+    private func handleElevate(reason: String, duration: DurationOption) {
+        guard let session = session else { return }
+
+        let result = elevateWithSuppression(reason: reason)
         switch result {
         case .success:
             session.start(reason: reason, duration: duration)
@@ -188,7 +214,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             // the next timer tick (up to 30s away).
             if session.shouldReElevate(), let reason = session.activeReason {
                 logger?.log("Re-elevating immediately on resume (overdue)")
-                if case .success = privilegeManager?.elevate(reason: reason) {
+                if case .success = elevateWithSuppression(reason: reason) {
                     session.recordReElevation()
                     logger?.log("Immediate re-elevation successful")
                 }
@@ -261,7 +287,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 logger?.log("Privileges lost but auto-extend is paused, skipping re-elevation")
             } else if let reason = session.activeReason {
                 logger?.log("Privileges lost (MDM timeout?), re-elevating")
-                let result = privilegeManager.elevate(reason: reason)
+                let result = elevateWithSuppression(reason: reason)
                 switch result {
                 case .success:
                     session.recordReElevation()
@@ -305,7 +331,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if session.shouldReElevate() {
             if let reason = session.activeReason {
                 logger?.log("Re-elevating privileges (reason: \(reason))")
-                let result = privilegeManager.elevate(reason: reason)
+                let result = elevateWithSuppression(reason: reason)
                 switch result {
                 case .success:
                     session.recordReElevation()
@@ -456,6 +482,15 @@ extension AppDelegate {
             logger?.log("Configuration reloaded from file change")
             statusBarController?.updateConfig(newConfig)
 
+            // Update notification suppressor if the setting changed
+            if newConfig.suppressNotifications != oldConfig?.suppressNotifications {
+                if newConfig.suppressNotifications {
+                    notificationSuppressor = NotificationSuppressor(logger: logger)
+                } else {
+                    notificationSuppressor = nil
+                }
+            }
+
             // Update notification dismisser if the setting changed
             if newConfig.dismissNotifications != oldConfig?.dismissNotifications {
                 if newConfig.dismissNotifications {
@@ -465,12 +500,17 @@ extension AppDelegate {
                 }
             }
 
-            // Update privilege manager and permission checker if CLI path changed
+            // Update privilege manager and permission checker if CLI path or dismiss setting changed
             let newCLIPath = (newConfig.privilegesCLIPath as NSString).expandingTildeInPath
             let oldCLIPath = oldConfig.map { ($0.privilegesCLIPath as NSString).expandingTildeInPath }
-            if newCLIPath != oldCLIPath {
-                privilegeManager = PrivilegeManager(cliPath: newCLIPath, logger: logger)
-                permissionChecker = PermissionChecker(cliPath: newConfig.privilegesCLIPath)
+            if newCLIPath != oldCLIPath || newConfig.dismissNotifications != oldConfig?.dismissNotifications {
+                if newCLIPath != oldCLIPath {
+                    privilegeManager = PrivilegeManager(cliPath: newCLIPath, logger: logger)
+                }
+                permissionChecker = PermissionChecker(
+                    cliPath: newConfig.privilegesCLIPath,
+                    checkAccessibility: newConfig.dismissNotifications
+                )
             }
 
             // Update re-elevation interval if changed

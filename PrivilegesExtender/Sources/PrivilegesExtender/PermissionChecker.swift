@@ -4,27 +4,35 @@ import PrivilegesExtenderCore
 /// Checks required system permissions and shows results to the user.
 final class PermissionChecker {
     private let cliPath: String
+    private let checkAccessibility: Bool
     private let isAccessibilityTrusted: () -> Bool
     private let isFileExecutable: (String) -> Bool
 
     init(
         cliPath: String,
+        checkAccessibility: Bool = false,
         isAccessibilityTrusted: @escaping () -> Bool = { AXIsProcessTrusted() },
         isFileExecutable: @escaping (String) -> Bool = { FileManager.default.isExecutableFile(atPath: $0) }
     ) {
         self.cliPath = cliPath
+        self.checkAccessibility = checkAccessibility
         self.isAccessibilityTrusted = isAccessibilityTrusted
         self.isFileExecutable = isFileExecutable
     }
 
-    /// Returns `true` when both Accessibility and PrivilegesCLI are available.
+    /// Returns `true` when all required permissions are available.
+    /// Accessibility is only checked when `dismiss_notifications` is enabled.
     func hasAllPermissions() -> Bool {
-        isAccessibilityTrusted() && checkCLIAvailable()
+        let cliOK = checkCLIAvailable()
+        if checkAccessibility {
+            return isAccessibilityTrusted() && cliOK
+        }
+        return cliOK
     }
 
     /// Checks all required permissions and displays results in an alert dialog.
     func showPermissionStatus() {
-        let accessibilityGranted = isAccessibilityTrusted()
+        let accessibilityGranted = checkAccessibility ? isAccessibilityTrusted() : nil
         let cliAvailable = checkCLIAvailable()
 
         let alert = NSAlert()
@@ -32,17 +40,19 @@ final class PermissionChecker {
         alert.alertStyle = .informational
 
         var lines: [String] = []
-        let accessStatus = accessibilityGranted ? "Granted" : "Not Granted"
-        lines.append("\(statusIcon(accessibilityGranted)) Accessibility: \(accessStatus)")
+        if let accessibilityGranted {
+            let accessStatus = accessibilityGranted ? "Granted" : "Not Granted"
+            lines.append("\(statusIcon(accessibilityGranted)) Accessibility: \(accessStatus)")
+        }
         lines.append("\(statusIcon(cliAvailable)) PrivilegesCLI: \(cliAvailable ? "Available" : "Not Found")")
 
-        let allGood = accessibilityGranted && cliAvailable
+        let allGood = (accessibilityGranted ?? true) && cliAvailable
         if allGood {
             lines.append("")
             lines.append("All permissions are configured correctly.")
         } else {
             lines.append("")
-            if !accessibilityGranted {
+            if accessibilityGranted == false {
                 lines.append("Grant Accessibility in System Settings > Privacy & Security > Accessibility.")
             }
             if !cliAvailable {
@@ -52,7 +62,7 @@ final class PermissionChecker {
 
         alert.informativeText = lines.joined(separator: "\n")
 
-        if !accessibilityGranted {
+        if accessibilityGranted == false {
             alert.addButton(withTitle: "Open Accessibility Settings")
             alert.addButton(withTitle: "OK")
         } else {
@@ -63,7 +73,7 @@ final class PermissionChecker {
         let response = alert.runModal()
 
         // If user clicked "Open Accessibility Settings"
-        if !accessibilityGranted && response == .alertFirstButtonReturn {
+        if accessibilityGranted == false && response == .alertFirstButtonReturn {
             promptForAccessibility()
         }
     }

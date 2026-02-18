@@ -17,8 +17,9 @@ A native macOS menu bar app that keeps SAP Privileges admin rights elevated and 
   - `AppDelegate.swift` — App lifecycle, re-elevation timer, state coordination
   - `StatusBarController.swift` — `NSStatusItem` with SF Symbol icons (`lock.shield` / `lock.shield.fill`)
   - `MenuBuilder.swift` — Builds full `NSMenu` from `AppConfig` (reasons, durations, actions)
-  - `NotificationDismisser.swift` — Dismisses Privileges notifications via `AXUIElement` API
-  - `PermissionChecker.swift` — Checks Accessibility permission and PrivilegesCLI availability
+  - `NotificationSuppressor.swift` — Suppresses notifications by freezing/killing `usernoted` around elevation
+  - `NotificationDismisser.swift` — Dismisses Privileges notifications via `AXUIElement` API (fallback)
+  - `PermissionChecker.swift` — Checks PrivilegesCLI availability (and Accessibility if dismiss fallback is enabled)
   - `LoginItemManager.swift` — `SMAppService.mainApp` login item registration (macOS 13+)
   - `LogViewerWindow.swift` — SwiftUI log viewer hosted in `NSWindow`
 - `Resources/default-config.yaml` — Default configuration file
@@ -37,7 +38,7 @@ A native macOS menu bar app that keeps SAP Privileges admin rights elevated and 
 
 ## Two-target architecture
 - **PrivilegesExtenderCore** (library) — config models, YAML parsing, privilege status, elevation session, logging. Uses only Foundation + Yams. Compiles on macOS and Linux.
-- **PrivilegesExtender** (executable) — AppKit menu bar UI, AXUIElement notification dismissal, SMAppService login items, SwiftUI log viewer. macOS only. Conditionally included in Package.swift via `#if os(macOS)`.
+- **PrivilegesExtender** (executable) — AppKit menu bar UI, usernoted-based notification suppression, AXUIElement notification dismissal (fallback), SMAppService login items, SwiftUI log viewer. macOS only. Conditionally included in Package.swift via `#if os(macOS)`.
 - **PrivilegesExtenderCoreTests** — Unit tests for Core. Runs on both macOS and Linux.
 
 ## Key paths
@@ -63,8 +64,9 @@ A native macOS menu bar app that keeps SAP Privileges admin rights elevated and 
 - Tests run on both macOS and Linux (Core target only on Linux)
 
 ## Technical notes
-- MDM enforces notification settings; user-level ncprefs.plist changes may be re-enforced at Jamf check-in
-- App uses `AXUIElement` API for notification dismissal (not AppleScript) — requires Accessibility permission
+- Notification suppression: SIGSTOP `usernoted` before elevation, SIGKILL after — launchd restarts it fresh without the queued notification banner
+- AXUIElement-based notification dismissal is kept as a fallback (`dismiss_notifications` config), requires Accessibility permission
+- MDM enforces notification settings; ncprefs.plist manipulation does NOT work (cfprefsd caches prevent runtime changes)
 - NotificationCenter UI hierarchy (macOS 26.2): `window "Notification Center" > group 1 > group 1 > scroll area 1 > groups`
 - LSUIElement: true (background app, no Dock icon)
 - Login items use `SMAppService.mainApp` (macOS 13+)

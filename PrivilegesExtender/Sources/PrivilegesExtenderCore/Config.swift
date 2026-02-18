@@ -6,6 +6,7 @@ public struct AppConfig: Codable, Equatable, Sendable {
     public var durations: [DurationOption]
     public var privilegesCLIPath: String
     public var reElevationIntervalSeconds: Int
+    public var suppressNotifications: Bool
     public var dismissNotifications: Bool
     public var logFile: String
 
@@ -33,13 +34,15 @@ public struct AppConfig: Codable, Equatable, Sendable {
         durations: [DurationOption] = AppConfig.defaultDurations,
         privilegesCLIPath: String = "/Applications/Privileges.app/Contents/MacOS/PrivilegesCLI",
         reElevationIntervalSeconds: Int = 1500,
-        dismissNotifications: Bool = true,
+        suppressNotifications: Bool = true,
+        dismissNotifications: Bool = false,
         logFile: String = "~/Library/Logs/privileges-extender.log"
     ) {
         self.reasons = reasons
         self.durations = durations
         self.privilegesCLIPath = privilegesCLIPath
         self.reElevationIntervalSeconds = reElevationIntervalSeconds
+        self.suppressNotifications = suppressNotifications
         self.dismissNotifications = dismissNotifications
         self.logFile = logFile
     }
@@ -49,6 +52,7 @@ public struct AppConfig: Codable, Equatable, Sendable {
         case durations
         case privilegesCLIPath = "privileges_cli_path"
         case reElevationIntervalSeconds = "re_elevation_interval_seconds"
+        case suppressNotifications = "suppress_notifications"
         case dismissNotifications = "dismiss_notifications"
         case logFile = "log_file"
     }
@@ -63,6 +67,8 @@ public struct AppConfig: Codable, Equatable, Sendable {
             ?? defaults.privilegesCLIPath
         reElevationIntervalSeconds = try container.decodeIfPresent(Int.self, forKey: .reElevationIntervalSeconds)
             ?? defaults.reElevationIntervalSeconds
+        suppressNotifications = try container.decodeIfPresent(Bool.self, forKey: .suppressNotifications)
+            ?? defaults.suppressNotifications
         dismissNotifications = try container.decodeIfPresent(Bool.self, forKey: .dismissNotifications)
             ?? defaults.dismissNotifications
         logFile = try container.decodeIfPresent(String.self, forKey: .logFile) ?? defaults.logFile
