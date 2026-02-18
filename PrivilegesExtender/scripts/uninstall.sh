@@ -1,7 +1,7 @@
 #!/bin/bash
 # uninstall.sh — Remove PrivilegesExtender menu bar app
 #
-# Usage:
+# Usage (from PrivilegesExtender/):
 #   ./scripts/uninstall.sh              # Remove app, keep config and logs
 #   ./scripts/uninstall.sh --all        # Remove app, config, and logs
 #
