@@ -78,9 +78,9 @@ final class PermissionCheckerTests: XCTestCase {
 
     // MARK: - hasAllPermissions combination logic
 
-    /// Both checks must pass for hasAllPermissions to return true.
+    /// When checkAccessibility is true, both checks must pass.
     func testHasAllPermissionsRequiresBothChecks() {
-        // Simulates the same logic as PermissionChecker.hasAllPermissions()
+        // Simulates PermissionChecker.hasAllPermissions() with checkAccessibility=true
         let combinations: [(accessibility: Bool, cli: Bool, expected: Bool)] = [
             (true, true, true),
             (true, false, false),
@@ -93,6 +93,26 @@ final class PermissionCheckerTests: XCTestCase {
             XCTAssertEqual(
                 result, combo.expected,
                 "accessibility=\(combo.accessibility), cli=\(combo.cli) should be \(combo.expected)"
+            )
+        }
+    }
+
+    /// When checkAccessibility is false, only CLI availability matters.
+    func testHasAllPermissionsSkipsAccessibilityWhenNotNeeded() {
+        // Simulates PermissionChecker.hasAllPermissions() with checkAccessibility=false
+        let combinations: [(accessibility: Bool, cli: Bool, expected: Bool)] = [
+            (true, true, true),
+            (true, false, false),
+            (false, true, true),   // accessibility doesn't matter
+            (false, false, false),
+        ]
+
+        let checkAccessibility = false
+        for combo in combinations {
+            let result = checkAccessibility ? (combo.accessibility && combo.cli) : combo.cli
+            XCTAssertEqual(
+                result, combo.expected,
+                "checkAccessibility=false, accessibility=\(combo.accessibility), cli=\(combo.cli) should be \(combo.expected)"
             )
         }
     }

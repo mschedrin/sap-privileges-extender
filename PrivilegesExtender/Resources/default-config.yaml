@@ -24,5 +24,6 @@ durations:
 
 privileges_cli_path: "/Applications/Privileges.app/Contents/MacOS/PrivilegesCLI"
 re_elevation_interval_seconds: 1500
-dismiss_notifications: true
+suppress_notifications: true # main method to suppress notifications
+dismiss_notifications: false # second method to suppress notifications. Notification will be dismissed a few seconds after being shown.
 log_file: "~/Library/Logs/privileges-extender.log"
